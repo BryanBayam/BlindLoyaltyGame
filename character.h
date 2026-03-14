@@ -29,8 +29,8 @@ static inline void InitPlayer(Player *p, Vector2 startPos) {
     p->currentSpeed = p->walkSpeed;
     
     // Pastikan path folder benar
-    p->texWalk = LoadTexture("images/Character/Tuyul/Unarmed_Walk_without_shadow.png");
-    p->texRun = LoadTexture("images/Character/Tuyul/Unarmed_Run_without_shadow.png");
+    p->texWalk = LoadTexture("images/Character/Reuben/Reuben_walk.png");
+    p->texRun = LoadTexture("images/Character/Reuben/Reuben_walk.png");
     
     p->activeTex = &p->texWalk;
     
@@ -71,10 +71,10 @@ static inline void UpdatePlayer(Player *p, int mapW, int mapH) {
     }
 
     // 2. Kontrol Arah & Gerak (Arah baris disesuaikan dengan standar spritesheet kamu)
-    if (IsKeyDown(KEY_RIGHT)) { p->pos.x += p->currentSpeed; p->currentLine = 2; isMoving = true; }
-    else if (IsKeyDown(KEY_LEFT)) { p->pos.x -= p->currentSpeed; p->currentLine = 1; isMoving = true; }
-    else if (IsKeyDown(KEY_UP)) { p->pos.y -= p->currentSpeed; p->currentLine = 3; isMoving = true; }
-    else if (IsKeyDown(KEY_DOWN)) { p->pos.y += p->currentSpeed; p->currentLine = 0; isMoving = true; }
+    if (IsKeyDown(KEY_RIGHT)) { p->pos.x += p->currentSpeed; p->currentLine = 1; isMoving = true; }
+    else if (IsKeyDown(KEY_LEFT)) { p->pos.x -= p->currentSpeed; p->currentLine = 2; isMoving = true; }
+    else if (IsKeyDown(KEY_UP)) { p->pos.y -= p->currentSpeed; p->currentLine = 0; isMoving = true; }
+    else if (IsKeyDown(KEY_DOWN)) { p->pos.y += p->currentSpeed; p->currentLine = 3; isMoving = true; }
 
     // 3. Update Animasi
     if (isMoving) {
