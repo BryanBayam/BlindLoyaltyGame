@@ -7,7 +7,7 @@
 typedef enum { SCREEN_MENU, SCREEN_GAMEPLAY } GameScreen;
 
 int main(void) {
-    // 1. Konfigurasi Resolusi
+    // Resolution
     const int vWidth = 1280;
     const int vHeight = 720;
     const int mapWidth = 2500; 
@@ -17,14 +17,14 @@ int main(void) {
     InitWindow(vWidth, vHeight, "Blind Loyalty - C Edition");
     SetTargetFPS(60);
 
-    // 2. Inisialisasi Objek
+    // When game opened, first thing open is menu screen
     GameScreen currentScreen = SCREEN_MENU;
     
     Player player;
     InitPlayer(&player, (Vector2){ mapWidth/2.0f, mapHeight/2.0f });
 
     Menu menu = { 0 };
-    // Pastikan path gambar benar
+    // Loading the background
     menu.background = LoadTexture("images/Background/menu.jpg");
 
     Camera2D camera = { 0 };
@@ -33,15 +33,15 @@ int main(void) {
 
     RenderTexture2D target = LoadRenderTexture(vWidth, vHeight);
 
-    // 3. Loop Utama
+    // main Loop
     while (!WindowShouldClose()) {
-        // Update Mouse Virtual (Agar klik menu tetap akurat saat window di-resize)
-        Vector2 mouse = GetMousePosition();
-        float scale = fminf((float)GetScreenWidth()/vWidth, (float)GetScreenHeight()/vHeight);
-        Vector2 vMouse = { (mouse.x - (GetScreenWidth() - (vWidth*scale))*0.5f)/scale, 
-                           (mouse.y - (GetScreenHeight() - (vHeight*scale))*0.5f)/scale };
+        // Update Mouse Virtual
+       Vector2 mouse = GetMousePosition(); 
 
-        // --- LOGIKA UPDATE ---
+    float scale = fminf((float)GetScreenWidth()/vWidth, (float)GetScreenHeight()/vHeight);
+    Vector2 vMouse = { (mouse.x - (GetScreenWidth() - (vWidth*scale))*0.5f)/scale, 
+                       (mouse.y - (GetScreenHeight() - (vHeight*scale))*0.5f)/scale };
+
         if (currentScreen == SCREEN_MENU) {
             int action = UpdateMenu(&menu, vMouse, vWidth, vHeight);
             if (action == 1) currentScreen = SCREEN_GAMEPLAY;
@@ -49,16 +49,16 @@ int main(void) {
         } 
         else if (currentScreen == SCREEN_GAMEPLAY) {
             
-            // Masukkan UpdatePlayer di sini (Menangani Jalan/Lari & Batas Map)
+            //  UpdatePlayer
             UpdatePlayer(&player, mapWidth, mapHeight);
             
-            // Kamera mengikuti player
+            // Camera follow player
             camera.target = player.pos;
 
             if (IsKeyPressed(KEY_ESCAPE)) currentScreen = SCREEN_MENU;
         }
 
-        // --- LOGIKA DRAWING ---
+       
         BeginTextureMode(target);
             ClearBackground(BLACK);
             
@@ -66,15 +66,15 @@ int main(void) {
                 DrawMenu(&menu, vWidth, vHeight);
             } 
             else {
-                // Gambar Dunia di dalam Kamera
+              
                 BeginMode2D(camera);
                     DrawMap1(mapWidth, mapHeight);
                     
-                    // Masukkan DrawPlayer di sini (Menggambar animasi yang aktif)
+                    // DrawPlayer
                     DrawPlayer(&player);
                 EndMode2D();
                 
-                // Gambar UI (Tidak ikut bergerak oleh kamera)
+                // UI doesn't follow camera
                 DrawText("ESC TO MENU | LSHIFT TO RUN", 10, vHeight - 30, 20, RAYWHITE);
             }
             DrawCircleV(vMouse, 5, RED); 
@@ -82,16 +82,14 @@ int main(void) {
 
         BeginDrawing();
             ClearBackground(BLACK);
-            // Gambar hasil render ke layar asli dengan auto-scaling
+            // Auto scalling
             DrawTexturePro(target.texture, (Rectangle){ 0, 0, (float)target.texture.width, (float)-target.texture.height },
                            (Rectangle){ (GetScreenWidth() - (vWidth*scale))*0.5f, (GetScreenHeight() - (vHeight*scale))*0.5f, vWidth*scale, vHeight*scale },
                            (Vector2){ 0, 0 }, 0.0f, WHITE);
         EndDrawing();
     }
 
-    // 4. Cleanup (PENTING)
-    
-    // Gunakan UnloadPlayer karena kita me-load 2 texture (Walk & Run)
+    // Cleanup
     UnloadPlayer(&player); 
     
     UnloadTexture(menu.background);

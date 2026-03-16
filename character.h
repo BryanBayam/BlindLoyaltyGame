@@ -1,6 +1,7 @@
 #ifndef CHARACTER_H
 #define CHARACTER_H
 #include "raylib.h"
+#include "raymath.h" // Butuh ini untuk Vector2Normalize
 
 typedef struct Player {
     Vector2 pos;
@@ -12,9 +13,9 @@ typedef struct Player {
     Texture2D texRun;
     Texture2D *activeTex; 
     
-    int frameCount;      // Akan diupdate otomatis tiap frame
+    int frameCount;      
     int currentFrame;
-    int currentLine;     // 0:Down, 1:Left, 2:Right, 3:Up
+    int currentLine;     // 0:Up, 1:Right, 2:Left, 3:Down (Sesuai gambar)
     float frameTimer;
     float frameSpeed;
     
@@ -28,85 +29,76 @@ static inline void InitPlayer(Player *p, Vector2 startPos) {
     p->runSpeed = 6.0f;
     p->currentSpeed = p->walkSpeed;
     
-    // Pastikan path folder benar
     p->texWalk = LoadTexture("images/Character/Reuben/Reuben_walk.png");
     p->texRun = LoadTexture("images/Character/Reuben/Reuben_walk.png");
     
     p->activeTex = &p->texWalk;
     
     p->currentFrame = 0;
-    p->currentLine = 0;
+    p->currentLine = 3; // start looking down
     p->frameTimer = 0.0f;
     p->frameSpeed = 0.12f; 
     
-    p->width = 150.0f;
-    p->height = 150.0f;
+    p->width = 128.0f;  // Reuben / our MC size
+    p->height = 128.0f;
     
-    // Inisialisasi awal frameCount (akan dihitung ulang di Update)
     if (p->activeTex->id > 0) {
-        p->frameCount = p->activeTex->width / (p->activeTex->height / 4);
-    } else {
-        p->frameCount = 1;
+        p->frameCount = 4; // how many frame ruben walk
     }
 }
 
 static inline void UpdatePlayer(Player *p, int mapW, int mapH) {
-    bool isMoving = false;
+    Vector2 direction = { 0, 0 };
 
-    // 1. Logika Ganti Tekstur (Walk vs Run)
-    if (IsKeyDown(KEY_LEFT_SHIFT)) {
-        p->currentSpeed = p->runSpeed;
-        p->activeTex = &p->texRun;
-        p->frameSpeed = 0.07f; 
-    } else {
-        p->currentSpeed = p->walkSpeed;
-        p->activeTex = &p->texWalk;
-        p->frameSpeed = 0.12f;
-    }
+    // Input walk
+    if (IsKeyDown(KEY_RIGHT)) { direction.x += 1; p->currentLine = 1; }
+    if (IsKeyDown(KEY_LEFT))  { direction.x -= 1; p->currentLine = 2; }
+    if (IsKeyDown(KEY_UP))    { direction.y -= 1; p->currentLine = 0; }
+    if (IsKeyDown(KEY_DOWN))  { direction.y += 1; p->currentLine = 3; }
 
-    // --- HITUNG JUMLAH FRAME OTOMATIS BERDASARKAN TEKSTUR AKTIF ---
-    // Rumus: Lebar total gambar / (Tinggi total / 4 arah)
-    if (p->activeTex->id > 0) {
-        p->frameCount = p->activeTex->width / (p->activeTex->height / 4);
-    }
+    bool isMoving = (direction.x != 0 || direction.y != 0);
 
-    // 2. Kontrol Arah & Gerak (Arah baris disesuaikan dengan standar spritesheet kamu)
-    if (IsKeyDown(KEY_RIGHT)) { p->pos.x += p->currentSpeed; p->currentLine = 1; isMoving = true; }
-    else if (IsKeyDown(KEY_LEFT)) { p->pos.x -= p->currentSpeed; p->currentLine = 2; isMoving = true; }
-    else if (IsKeyDown(KEY_UP)) { p->pos.y -= p->currentSpeed; p->currentLine = 0; isMoving = true; }
-    else if (IsKeyDown(KEY_DOWN)) { p->pos.y += p->currentSpeed; p->currentLine = 3; isMoving = true; }
-
-    // 3. Update Animasi
+    // 2. This is for diagonal walk problem, I have not complete it yet
     if (isMoving) {
+        direction = Vector2Normalize(direction);
+        
+        // this is the speed for walking and run
+        if (IsKeyDown(KEY_LEFT_SHIFT)) {
+            p->currentSpeed = p->runSpeed;
+            p->frameSpeed = 0.08f;
+        } else {
+            p->currentSpeed = p->walkSpeed;
+            p->frameSpeed = 0.14f;
+        }
+
+        p->pos.x += direction.x * p->currentSpeed;
+        p->pos.y += direction.y * p->currentSpeed;
+
+        // And this one is animation
         p->frameTimer += GetFrameTime();
         if (p->frameTimer >= p->frameSpeed) {
             p->frameTimer = 0.0f;
             p->currentFrame++;
-            if (p->currentFrame >= p->frameCount) p->currentFrame = 0;
+            if (p->currentFrame >= 4) p->currentFrame = 0;
         }
     } else {
-        p->currentFrame = 0; 
+        // if you are not moving, we use what frame.
+        p->currentFrame = 2; 
+        p->frameTimer = 0.0f;
     }
 
-    // 4. Pembatas Map (Clamping)
+    // 4. This is the map border, still prototype
     float hW = p->width / 2.0f;
     float hH = p->height / 2.0f;
-    if (p->pos.x < hW) p->pos.x = hW;
-    if (p->pos.x > mapW - hW) p->pos.x = mapW - hW;
-    if (p->pos.y < hH) p->pos.y = hH;
-    if (p->pos.y > mapH - hH) p->pos.y = mapH - hH;
+    p->pos.x = Clamp(p->pos.x, hW, mapW - hW);
+    p->pos.y = Clamp(p->pos.y, hH, mapH - hH);
 }
 
 static inline void DrawPlayer(Player *p) {
-    // Jika tekstur gagal load (ID 0), gambar kotak merah
-    if (p->activeTex->id <= 0) {
-        DrawRectangleV((Vector2){p->pos.x - 25, p->pos.y - 25}, (Vector2){50, 50}, RED);
-        return;
-    }
+    if (p->activeTex->id <= 0) return;
 
-    // Hitung ukuran satu kotak frame
-    float frameW = (float)p->activeTex->width / p->frameCount;
-    float frameH = (float)p->activeTex->height / 4;
+    float frameW = (float)p->activeTex->width / 4.0f;
+    float frameH = (float)p->activeTex->height / 4.0f;
 
     Rectangle sourceRec = { 
         (float)p->currentFrame * frameW, 
@@ -122,8 +114,11 @@ static inline void DrawPlayer(Player *p) {
 }
 
 static inline void UnloadPlayer(Player *p) {
+
     UnloadTexture(p->texWalk);
+
     UnloadTexture(p->texRun);
+
 }
 
 #endif
