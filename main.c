@@ -17,7 +17,7 @@ int main(void) {
     GameScreen currentScreen = SCREEN_MENU;
 
     Menu menu = { 0 };
-    menu.background = LoadTexture("images/Background/menu.jpg");
+    menu.background = LoadTexture("images/Background/TitleBackground.PNG");
 
     Tilemap map;
     if (!LoadTilemap(&map, "maps/map1/map1.json")) {
