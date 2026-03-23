@@ -8,9 +8,8 @@
 #include "scene3.h" 
 #include "scene4.h" 
 #include "scene5.h" 
-#include "scene6.h" // <-- 1. Include Scene 6
+#include "scene6.h" 
 
-// 2. Added SCREEN_SCENE6 to the enum
 typedef enum { SCREEN_LOADING, SCREEN_MENU, SCREEN_SCENE1, SCREEN_SCENE2, SCREEN_SCENE3, SCREEN_SCENE4, SCREEN_SCENE5, SCREEN_SCENE6, SCREEN_GAMEPLAY } GameScreen;
 
 int main(void) {
@@ -25,7 +24,6 @@ int main(void) {
     int loadStep = 0;
     float loadProgress = 0.0f;
 
-    // 3. Declare Scene 6 alongside the others
     Menu menu = { 0 };
     Tilemap map = { 0 };
     Player player = { 0 };
@@ -34,7 +32,7 @@ int main(void) {
     Scene3 scene3 = { 0 };
     Scene4 scene4 = { 0 }; 
     Scene5 scene5 = { 0 }; 
-    Scene6 scene6 = { 0 }; // Initialize Scene 6
+    Scene6 scene6 = { 0 }; 
 
     Camera2D camera = { 0 };
     camera.offset = (Vector2){ vWidth / 2.0f, vHeight / 2.0f };
@@ -56,7 +54,6 @@ int main(void) {
 
         // --- UPDATE LOGIC ---
         if (currentScreen == SCREEN_LOADING) {
-            // 4. Update the switch statement to include loading Scene 6
             switch (loadStep) {
                 case 0:
                     menu.background = LoadTexture("images/Background/TitleBackground.PNG");
@@ -66,8 +63,8 @@ int main(void) {
                 case 1:
                     if (!LoadTilemap(&map, "maps/map1/map1.json")) {
                         TraceLog(LOG_ERROR, "Failed to load map1");
-                        CloseWindow();
-                        return 1;
+                        // ---> CHANGED: Safely jump to cleanup instead of hard exiting
+                        goto cleanup; 
                     }
                     loadProgress = 0.22f; 
                     loadStep++;
@@ -104,12 +101,11 @@ int main(void) {
                     loadStep++;
                     break;
                 case 8:
-                    InitScene6(&scene6); // Load Scene 6
+                    InitScene6(&scene6); 
                     loadProgress = 1.0f; 
                     loadStep++;
                     break;
                 case 9:
-                    // Done loading!
                     currentScreen = SCREEN_MENU;
                     break;
             }
@@ -117,7 +113,7 @@ int main(void) {
         else if (currentScreen == SCREEN_MENU) {
             int action = UpdateMenu(&menu, vMouse, vWidth, vHeight);
             if (action == 1) currentScreen = SCREEN_SCENE1; 
-            if (action == 2) break;
+            if (action == 2) break; // Break out of main loop to trigger cleanup
         }
         else if (currentScreen == SCREEN_SCENE1) {
             UpdateScene1(&scene1, vMouse, mouseClicked, vWidth);
@@ -146,14 +142,13 @@ int main(void) {
         else if (currentScreen == SCREEN_SCENE5) {
             UpdateScene5(&scene5, vMouse, mouseClicked, vWidth);
             if (scene5.currentState == SCENE5_DONE) {
-                currentScreen = SCREEN_SCENE6; // 5. Transition to Scene 6
+                currentScreen = SCREEN_SCENE6; 
             }
         }
         else if (currentScreen == SCREEN_SCENE6) {
-            // 6. Update Scene 6
             UpdateScene6(&scene6, vMouse, mouseClicked, vWidth);
             if (scene6.currentState == SCENE6_DONE) {
-                currentScreen = SCREEN_GAMEPLAY; // 7. Finally, enter the game!
+                currentScreen = SCREEN_GAMEPLAY; 
             }
         }
         else if (currentScreen == SCREEN_GAMEPLAY) {
@@ -199,14 +194,15 @@ int main(void) {
                 DrawScene5(&scene5, vWidth, vHeight);
             }
             else if (currentScreen == SCREEN_SCENE6) {
-                // 8. Draw Scene 6
                 DrawScene6(&scene6, vWidth, vHeight);
             }
-            else {
+            else if (currentScreen == SCREEN_GAMEPLAY) { 
                 BeginMode2D(camera);
                     DrawTilemapAll(&map);
                     DrawPlayer(&player);
                 EndMode2D();
+
+                DrawPlayerUI(&player);
 
                 DrawText("ESC TO MENU | LSHIFT TO RUN", 10, vHeight - 30, 20, RAYWHITE);
             }
@@ -233,13 +229,15 @@ int main(void) {
         EndDrawing();
     }
 
+// ---> ADDED: Cleanup Label <---
+cleanup:
     // --- Cleanup Memory ---
     UnloadScene1(&scene1);
     UnloadScene2(&scene2);
     UnloadScene3(&scene3); 
     UnloadScene4(&scene4); 
     UnloadScene5(&scene5); 
-    UnloadScene6(&scene6); // 9. Clean up Scene 6
+    UnloadScene6(&scene6); 
     UnloadPlayer(&player);
     UnloadTilemap(&map);
     UnloadTexture(menu.background);
