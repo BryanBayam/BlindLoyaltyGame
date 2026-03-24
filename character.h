@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "tilemap.h"
+#include <stdbool.h>
 
 typedef struct Player {
     Vector2 pos;
@@ -24,16 +25,15 @@ typedef struct Player {
     float width;
     float height;
 
-    // ---> Stats & UI Variables <---
     float health;
     float maxHealth;
     float energy;
     float maxEnergy;
-    
-    // ---> NEW: Tracks the 2-second cooldown when energy hits 0 <---
-    float exhaustionTimer; 
+    float exhaustionTimer;
 
     Texture2D texUI;
+
+    bool isDead;
 } Player;
 
 static inline void InitPlayer(Player *p, Vector2 startPos) {
@@ -55,16 +55,15 @@ static inline void InitPlayer(Player *p, Vector2 startPos) {
     p->width = 48.0f;
     p->height = 48.0f;
 
-    // ---> Initialize Stats <---
     p->maxHealth = 100.0f;
     p->health = 100.0f;
     p->maxEnergy = 100.0f;
     p->energy = 100.0f;
-    
-    p->exhaustionTimer = 0.0f; // Start with no exhaustion
+    p->exhaustionTimer = 0.0f;
 
-    // ---> Load UI Assets <---
     p->texUI = LoadTexture("images/GUI/Reuben_Chat.png");
+
+    p->isDead = false;
 }
 
 static inline Rectangle GetPlayerHitbox(Vector2 pos) {
@@ -78,46 +77,51 @@ static inline Rectangle GetPlayerHitbox(Vector2 pos) {
 }
 
 static inline void UpdatePlayer(Player *p, const Tilemap *map) {
-    Vector2 direction = { 0, 0 };
+    if (p->isDead) return;
 
-    if (IsKeyDown(KEY_D)) { direction.x += 1; p->currentLine = 1; }
-    if (IsKeyDown(KEY_A)) { direction.x -= 1; p->currentLine = 2; }
-    if (IsKeyDown(KEY_W)) { direction.y -= 1; p->currentLine = 0; }
-    if (IsKeyDown(KEY_S)) { direction.y += 1; p->currentLine = 3; }
+    float dt = GetFrameTime();
+    Vector2 direction = { 0.0f, 0.0f };
 
-    bool isMoving = (direction.x != 0 || direction.y != 0);
-    
-    // ---> NEW: Decrease the exhaustion timer if it is active <---
+    if (IsKeyDown(KEY_D)) { direction.x += 1.0f; p->currentLine = 1; }
+    if (IsKeyDown(KEY_A)) { direction.x -= 1.0f; p->currentLine = 2; }
+    if (IsKeyDown(KEY_W)) { direction.y -= 1.0f; p->currentLine = 0; }
+    if (IsKeyDown(KEY_S)) { direction.y += 1.0f; p->currentLine = 3; }
+
+    bool isMoving = (direction.x != 0.0f || direction.y != 0.0f);
+
     if (p->exhaustionTimer > 0.0f) {
-        p->exhaustionTimer -= GetFrameTime();
+        p->exhaustionTimer -= dt;
         if (p->exhaustionTimer < 0.0f) p->exhaustionTimer = 0.0f;
     }
 
-    // Player can only run if they are pressing Shift, actually moving, have energy, AND are NOT exhausted
-    bool isRunning = IsKeyDown(KEY_LEFT_SHIFT) && isMoving && (p->energy > 0.0f) && (p->exhaustionTimer <= 0.0f);
+    bool isRunning = IsKeyDown(KEY_LEFT_SHIFT) &&
+                     isMoving &&
+                     (p->energy > 0.0f) &&
+                     (p->exhaustionTimer <= 0.0f);
 
-    // ---> Energy & Exhaustion Logic <---
     if (isRunning) {
-        p->energy -= 20.0f * GetFrameTime(); // Drain 20 energy per second
-        
-        // If energy hits 0, trigger the 2-second exhaustion penalty!
+        p->energy -= 20.0f * dt;
         if (p->energy <= 0.0f) {
             p->energy = 0.0f;
-            p->exhaustionTimer = 2.0f; 
+            p->exhaustionTimer = 2.0f;
         }
     } else {
-        // Only recover energy if the player is NOT exhausted
         if (p->exhaustionTimer <= 0.0f) {
-            p->energy += 4.0f * GetFrameTime();  // Recover 4 energy per second
+            p->energy += 4.0f * dt;
             if (p->energy > p->maxEnergy) p->energy = p->maxEnergy;
         }
     }
 
-    // Health always recovers 4/s
-    p->health += 4.0f * GetFrameTime();
+    // Lower health regen so enemy damage can beat it
+    p->health += 1.0f * dt;
     if (p->health > p->maxHealth) p->health = p->maxHealth;
 
-    // Movement Logic
+    if (p->health <= 0.0f) {
+        p->health = 0.0f;
+        p->isDead = true;
+        return;
+    }
+
     if (isMoving) {
         direction = Vector2Normalize(direction);
 
@@ -145,7 +149,7 @@ static inline void UpdatePlayer(Player *p, const Tilemap *map) {
             p->pos.y = nextPos.y;
         }
 
-        p->frameTimer += GetFrameTime();
+        p->frameTimer += dt;
         if (p->frameTimer >= p->frameSpeed) {
             p->frameTimer = 0.0f;
             p->currentFrame++;
@@ -176,41 +180,39 @@ static inline void DrawPlayer(Player *p) {
     DrawTexturePro(*p->activeTex, sourceRec, destRec, origin, 0.0f, WHITE);
 }
 
-// ---> FOOLPROOF UI (Pushed down and sized to fit the grooves) <---
 static inline void DrawPlayerUI(Player *p) {
-    Vector2 uiPos = { 20.0f, 20.0f }; 
-    float uiScale = 2.5f; 
+    Vector2 uiPos = { 20.0f, 20.0f };
+    float uiScale = 2.5f;
 
     float panelW = p->texUI.width / 2.0f;
-    float panelH = p->texUI.height / 5.0f; 
+    float panelH = p->texUI.height / 5.0f;
 
-    // 1. Draw the Base Frame
-    Rectangle uiSource = { 0, 0, panelW, panelH }; 
+    Rectangle uiSource = { 0, 0, panelW, panelH };
     Rectangle uiDest = { uiPos.x, uiPos.y, panelW * uiScale, panelH * uiScale };
-    DrawTexturePro(p->texUI, uiSource, uiDest, (Vector2){0, 0}, 0.0f, WHITE);
+    DrawTexturePro(p->texUI, uiSource, uiDest, (Vector2){ 0, 0 }, 0.0f, WHITE);
 
-    // 2. Exact coordinates
-    float barX = uiPos.x + (panelW * 0.31f * uiScale); 
-    float barY = uiPos.x + (panelW * 0.33f * uiScale); 
-    float barH = panelH * 0.10f * uiScale; 
+    float barX = uiPos.x + (panelW * 0.31f * uiScale);
+    float barH = panelH * 0.10f * uiScale;
 
-    // ---> CHANGED: Separated the widths! The wooden frame is slanted, 
-    // so the top groove is actually longer than the bottom groove.
-    float redBarW  = panelW * 0.55f * uiScale; // Made Health much longer!
-    float blueBarW = panelW * 0.46f * uiScale; // Made Energy slightly longer too
+    float redBarW  = panelW * 0.55f * uiScale;
+    float blueBarW = panelW * 0.47f * uiScale;
 
-    float redY  = uiPos.y + (panelH * 0.30f * uiScale); 
-    float blueY = uiPos.y + (panelH * 0.45f * uiScale); 
+    float redY  = uiPos.y + (panelH * 0.30f * uiScale);
+    float blueY = uiPos.y + (panelH * 0.45f * uiScale);
 
-    // 3. Draw Health (Red)
     float healthRatio = p->health / p->maxHealth;
+    if (healthRatio < 0.0f) healthRatio = 0.0f;
+    if (healthRatio > 1.0f) healthRatio = 1.0f;
+
     DrawRectangle((int)barX, (int)redY, (int)(redBarW * healthRatio), (int)barH, MAROON);
     DrawRectangle((int)barX, (int)redY, (int)(redBarW * healthRatio), (int)(barH / 2.0f), RED);
 
-    // 4. Draw Energy (Blue)
     float energyRatio = p->energy / p->maxEnergy;
-    DrawRectangle((int)barY, (int)blueY, (int)(blueBarW * energyRatio), (int)barH, DARKBLUE);
-    DrawRectangle((int)barY, (int)blueY, (int)(blueBarW * energyRatio), (int)(barH / 2.0f), BLUE);
+    if (energyRatio < 0.0f) energyRatio = 0.0f;
+    if (energyRatio > 1.0f) energyRatio = 1.0f;
+
+    DrawRectangle((int)barX, (int)blueY, (int)(blueBarW * energyRatio), (int)barH, DARKBLUE);
+    DrawRectangle((int)barX, (int)blueY, (int)(blueBarW * energyRatio), (int)(barH / 2.0f), BLUE);
 }
 
 static inline void UnloadPlayer(Player *p) {
