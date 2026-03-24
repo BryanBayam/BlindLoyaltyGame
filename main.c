@@ -1,16 +1,82 @@
 #include "raylib.h"
 #include <math.h>
+#include <stdbool.h>
 #include "character.h"
+#include "enemy.h"
 #include "menu.h"
 #include "tilemap.h"
-#include "scene1.h" 
-#include "scene2.h" 
-#include "scene3.h" 
-#include "scene4.h" 
-#include "scene5.h" 
-#include "scene6.h" 
+#include "scene1.h"
+#include "scene2.h"
+#include "scene3.h"
+#include "scene4.h"
+#include "scene5.h"
+#include "scene6.h"
 
-typedef enum { SCREEN_LOADING, SCREEN_MENU, SCREEN_SCENE1, SCREEN_SCENE2, SCREEN_SCENE3, SCREEN_SCENE4, SCREEN_SCENE5, SCREEN_SCENE6, SCREEN_GAMEPLAY } GameScreen;
+#define MAX_ENEMIES 5
+#define PLAYER_HISTORY_SIZE 900
+
+typedef enum {
+    SCREEN_LOADING,
+    SCREEN_MENU,
+    SCREEN_SCENE1,
+    SCREEN_SCENE2,
+    SCREEN_SCENE3,
+    SCREEN_SCENE4,
+    SCREEN_SCENE5,
+    SCREEN_SCENE6,
+    SCREEN_GAMEPLAY
+} GameScreen;
+
+static int CountActiveEnemies(Enemy enemies[], int count) {
+    int active = 0;
+    for (int i = 0; i < count; i++) {
+        if (enemies[i].active) active++;
+    }
+    return active;
+}
+
+static int FindFreeEnemySlot(Enemy enemies[], int count) {
+    for (int i = 0; i < count; i++) {
+        if (!enemies[i].active) return i;
+    }
+    return -1;
+}
+
+// NEW: restart gameplay state
+static void ResetGameplay(Player *player, Tilemap *map, Enemy bandits[], Vector2 playerHistory[], int *historyIndex, float *spawnTimer, Camera2D *camera) {
+    UnloadPlayer(player);
+    InitPlayer(player, FindWalkableSpawn(map));
+
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        UnloadEnemy(&bandits[i]);
+        InitEnemy(&bandits[i], (Vector2){ 0.0f, 0.0f });
+    }
+
+    for (int i = 0; i < PLAYER_HISTORY_SIZE; i++) {
+        playerHistory[i] = player->pos;
+    }
+
+    *historyIndex = 0;
+    *spawnTimer = 15.0f;
+    camera->target = player->pos;
+}
+
+// NEW: death overlay
+static void DrawDeathOverlay(int vWidth, int vHeight) {
+    DrawRectangle(0, 0, vWidth, vHeight, Fade(BLACK, 0.70f));
+
+    const char *title = "YOU DIED";
+    const char *msg = "Press R to Restart";
+
+    int titleSize = 64;
+    int msgSize = 28;
+
+    int titleW = MeasureText(title, titleSize);
+    int msgW = MeasureText(msg, msgSize);
+
+    DrawText(title, (vWidth - titleW) / 2, vHeight / 2 - 60, titleSize, RED);
+    DrawText(msg, (vWidth - msgW) / 2, vHeight / 2 + 20, msgSize, MAROON);
+}
 
 int main(void) {
     const int vWidth = 1280;
@@ -27,12 +93,17 @@ int main(void) {
     Menu menu = { 0 };
     Tilemap map = { 0 };
     Player player = { 0 };
+    Enemy bandits[MAX_ENEMIES] = { 0 };
     Scene1 scene1 = { 0 };
     Scene2 scene2 = { 0 };
     Scene3 scene3 = { 0 };
-    Scene4 scene4 = { 0 }; 
-    Scene5 scene5 = { 0 }; 
-    Scene6 scene6 = { 0 }; 
+    Scene4 scene4 = { 0 };
+    Scene5 scene5 = { 0 };
+    Scene6 scene6 = { 0 };
+
+    Vector2 playerHistory[PLAYER_HISTORY_SIZE] = { 0 };
+    int historyIndex = 0;
+    float spawnTimer = 15.0f;
 
     Camera2D camera = { 0 };
     camera.offset = (Vector2){ vWidth / 2.0f, vHeight / 2.0f };
@@ -49,116 +120,156 @@ int main(void) {
             (mouse.x - (GetScreenWidth() - (vWidth * scale)) * 0.5f) / scale,
             (mouse.y - (GetScreenHeight() - (vHeight * scale)) * 0.5f) / scale
         };
-        
+
         bool mouseClicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
-        // --- UPDATE LOGIC ---
         if (currentScreen == SCREEN_LOADING) {
             switch (loadStep) {
                 case 0:
                     menu.background = LoadTexture("images/Background/TitleBackground.PNG");
-                    loadProgress = 0.11f; 
+                    loadProgress = 0.10f;
                     loadStep++;
                     break;
+
                 case 1:
                     if (!LoadTilemap(&map, "maps/map1/map1.json")) {
                         TraceLog(LOG_ERROR, "Failed to load map1");
-                        // ---> CHANGED: Safely jump to cleanup instead of hard exiting
-                        goto cleanup; 
+                        goto cleanup;
                     }
-                    loadProgress = 0.22f; 
+                    loadProgress = 0.20f;
                     loadStep++;
                     break;
+
                 case 2:
                     InitPlayer(&player, FindWalkableSpawn(&map));
-                    camera.target = player.pos; 
-                    loadProgress = 0.33f; 
+                    camera.target = player.pos;
+
+                    for (int i = 0; i < PLAYER_HISTORY_SIZE; i++) {
+                        playerHistory[i] = player.pos;
+                    }
+
+                    loadProgress = 0.30f;
                     loadStep++;
                     break;
+
                 case 3:
-                    InitScene1(&scene1); 
-                    loadProgress = 0.44f; 
+                    for (int i = 0; i < MAX_ENEMIES; i++) {
+                        InitEnemy(&bandits[i], (Vector2){ 0.0f, 0.0f });
+                    }
+                    loadProgress = 0.40f;
                     loadStep++;
                     break;
+
                 case 4:
-                    InitScene2(&scene2); 
-                    loadProgress = 0.55f; 
+                    InitScene1(&scene1);
+                    loadProgress = 0.50f;
                     loadStep++;
                     break;
+
                 case 5:
-                    InitScene3(&scene3); 
-                    loadProgress = 0.66f; 
+                    InitScene2(&scene2);
+                    loadProgress = 0.60f;
                     loadStep++;
                     break;
+
                 case 6:
-                    InitScene4(&scene4); 
-                    loadProgress = 0.77f; 
+                    InitScene3(&scene3);
+                    loadProgress = 0.70f;
                     loadStep++;
                     break;
+
                 case 7:
-                    InitScene5(&scene5); 
-                    loadProgress = 0.88f; 
+                    InitScene4(&scene4);
+                    loadProgress = 0.80f;
                     loadStep++;
                     break;
+
                 case 8:
-                    InitScene6(&scene6); 
-                    loadProgress = 1.0f; 
+                    InitScene5(&scene5);
+                    loadProgress = 0.90f;
                     loadStep++;
                     break;
+
                 case 9:
+                    InitScene6(&scene6);
+                    loadProgress = 1.0f;
+                    loadStep++;
+                    break;
+
+                case 10:
                     currentScreen = SCREEN_MENU;
                     break;
             }
         }
         else if (currentScreen == SCREEN_MENU) {
             int action = UpdateMenu(&menu, vMouse, vWidth, vHeight);
-            if (action == 1) currentScreen = SCREEN_SCENE1; 
-            if (action == 2) break; // Break out of main loop to trigger cleanup
+            if (action == 1) currentScreen = SCREEN_SCENE1;
+            if (action == 2) break;
         }
         else if (currentScreen == SCREEN_SCENE1) {
             UpdateScene1(&scene1, vMouse, mouseClicked, vWidth);
-            if (scene1.currentState == SCENE1_DONE) {
-                currentScreen = SCREEN_SCENE2; 
-            }
+            if (scene1.currentState == SCENE1_DONE) currentScreen = SCREEN_SCENE2;
         }
         else if (currentScreen == SCREEN_SCENE2) {
             UpdateScene2(&scene2, vMouse, mouseClicked, vWidth);
-            if (scene2.currentState == SCENE2_DONE) {
-                currentScreen = SCREEN_SCENE3; 
-            }
+            if (scene2.currentState == SCENE2_DONE) currentScreen = SCREEN_SCENE3;
         }
         else if (currentScreen == SCREEN_SCENE3) {
             UpdateScene3(&scene3, vMouse, mouseClicked, vWidth);
-            if (scene3.currentState == SCENE3_DONE) {
-                currentScreen = SCREEN_SCENE4; 
-            }
+            if (scene3.currentState == SCENE3_DONE) currentScreen = SCREEN_SCENE4;
         }
         else if (currentScreen == SCREEN_SCENE4) {
             UpdateScene4(&scene4, vMouse, mouseClicked, vWidth);
-            if (scene4.currentState == SCENE4_DONE) {
-                currentScreen = SCREEN_SCENE5; 
-            }
+            if (scene4.currentState == SCENE4_DONE) currentScreen = SCREEN_SCENE5;
         }
         else if (currentScreen == SCREEN_SCENE5) {
             UpdateScene5(&scene5, vMouse, mouseClicked, vWidth);
-            if (scene5.currentState == SCENE5_DONE) {
-                currentScreen = SCREEN_SCENE6; 
-            }
+            if (scene5.currentState == SCENE5_DONE) currentScreen = SCREEN_SCENE6;
         }
         else if (currentScreen == SCREEN_SCENE6) {
             UpdateScene6(&scene6, vMouse, mouseClicked, vWidth);
-            if (scene6.currentState == SCENE6_DONE) {
-                currentScreen = SCREEN_GAMEPLAY; 
-            }
+            if (scene6.currentState == SCENE6_DONE) currentScreen = SCREEN_GAMEPLAY;
         }
         else if (currentScreen == SCREEN_GAMEPLAY) {
-            UpdatePlayer(&player, &map);
-            camera.target = player.pos;
+            // ONLY update gameplay if player is alive
+            if (!player.isDead) {
+                UpdatePlayer(&player, &map);
+                camera.target = player.pos;
+
+                playerHistory[historyIndex] = player.pos;
+                historyIndex = (historyIndex + 1) % PLAYER_HISTORY_SIZE;
+
+                spawnTimer -= GetFrameTime();
+                if (spawnTimer <= 0.0f) {
+                    if (CountActiveEnemies(bandits, MAX_ENEMIES) < MAX_ENEMIES) {
+                        int slot = FindFreeEnemySlot(bandits, MAX_ENEMIES);
+
+                        if (slot != -1) {
+                            Vector2 oldPos = playerHistory[historyIndex];
+
+                            if (CanEnemySpawnAt(oldPos, &map)) {
+                                SpawnEnemy(&bandits[slot], oldPos, &map);
+                            }
+                        }
+                    }
+
+                    spawnTimer = 15.0f;
+                }
+
+                for (int i = 0; i < MAX_ENEMIES; i++) {
+                    UpdateEnemy(&bandits[i], &player, &map);
+                }
+            }
+            else {
+                // Restart when dead
+                if (IsKeyPressed(KEY_R)) {
+                    ResetGameplay(&player, &map, bandits, playerHistory, &historyIndex, &spawnTimer, &camera);
+                }
+            }
 
             if (IsKeyPressed(KEY_ESCAPE)) currentScreen = SCREEN_MENU;
         }
 
-        // --- DRAWING LOGIC ---
         BeginTextureMode(target);
             ClearBackground(BLACK);
 
@@ -196,18 +307,27 @@ int main(void) {
             else if (currentScreen == SCREEN_SCENE6) {
                 DrawScene6(&scene6, vWidth, vHeight);
             }
-            else if (currentScreen == SCREEN_GAMEPLAY) { 
+            else if (currentScreen == SCREEN_GAMEPLAY) {
                 BeginMode2D(camera);
                     DrawTilemapAll(&map);
+
+                    for (int i = 0; i < MAX_ENEMIES; i++) {
+                        DrawEnemy(&bandits[i]);
+                    }
+
                     DrawPlayer(&player);
                 EndMode2D();
 
                 DrawPlayerUI(&player);
-
                 DrawText("ESC TO MENU | LSHIFT TO RUN", 10, vHeight - 30, 20, RAYWHITE);
+
+                // NEW: draw death overlay on top of gameplay
+                if (player.isDead) {
+                    DrawDeathOverlay(vWidth, vHeight);
+                }
             }
 
-            DrawCircleV(vMouse, 5, RED); 
+            DrawCircleV(vMouse, 5, RED);
         EndTextureMode();
 
         BeginDrawing();
@@ -229,15 +349,18 @@ int main(void) {
         EndDrawing();
     }
 
-// ---> ADDED: Cleanup Label <---
 cleanup:
-    // --- Cleanup Memory ---
     UnloadScene1(&scene1);
     UnloadScene2(&scene2);
-    UnloadScene3(&scene3); 
-    UnloadScene4(&scene4); 
-    UnloadScene5(&scene5); 
-    UnloadScene6(&scene6); 
+    UnloadScene3(&scene3);
+    UnloadScene4(&scene4);
+    UnloadScene5(&scene5);
+    UnloadScene6(&scene6);
+
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        UnloadEnemy(&bandits[i]);
+    }
+
     UnloadPlayer(&player);
     UnloadTilemap(&map);
     UnloadTexture(menu.background);
