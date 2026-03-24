@@ -42,7 +42,7 @@ static int FindFreeEnemySlot(Enemy enemies[], int count) {
     return -1;
 }
 
-// NEW: restart gameplay state
+// Press R for Restart
 static void ResetGameplay(Player *player, Tilemap *map, Enemy bandits[], Vector2 playerHistory[], int *historyIndex, float *spawnTimer, Camera2D *camera) {
     UnloadPlayer(player);
     InitPlayer(player, FindWalkableSpawn(map));
@@ -61,7 +61,7 @@ static void ResetGameplay(Player *player, Tilemap *map, Enemy bandits[], Vector2
     camera->target = player->pos;
 }
 
-// NEW: death overlay
+// Death Screen
 static void DrawDeathOverlay(int vWidth, int vHeight) {
     DrawRectangle(0, 0, vWidth, vHeight, Fade(BLACK, 0.70f));
 
@@ -84,6 +84,11 @@ int main(void) {
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
     InitWindow(vWidth, vHeight, "Blind Loyalty - C Edition");
+    
+    //Declare audio
+    SetAudioStreamBufferSizeDefault(4096);
+    InitAudioDevice(); 
+    
     SetTargetFPS(60);
 
     GameScreen currentScreen = SCREEN_LOADING;
@@ -112,6 +117,16 @@ int main(void) {
 
     RenderTexture2D target = LoadRenderTexture(vWidth, vHeight);
 
+    Music menuMusic = { 0 };
+    Music storyMusic = { 0 };
+    Music inGameMusic = { 0 };
+    
+    Music *activeMusic = NULL; 
+
+    bool fadeOutMusic = false;
+    float musicVolume = 1.0f;
+    GameScreen nextScreenAfterFade = SCREEN_MENU; 
+
     while (!WindowShouldClose()) {
         Vector2 mouse = GetMousePosition();
 
@@ -123,10 +138,53 @@ int main(void) {
 
         bool mouseClicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
+
+        if (activeMusic != NULL) {
+            UpdateMusicStream(*activeMusic);
+        }
+
+        if (fadeOutMusic && activeMusic != NULL) {
+            musicVolume -= GetFrameTime();
+            
+            if (musicVolume <= 0.0f) {
+                musicVolume = 0.0f;
+                StopMusicStream(*activeMusic);
+                fadeOutMusic = false;
+                currentScreen = nextScreenAfterFade; 
+                
+                // For Music Play
+                if (currentScreen == SCREEN_SCENE1) {
+                    activeMusic = &storyMusic;
+                    musicVolume = 1.0f;
+                    SetMusicVolume(*activeMusic, musicVolume);
+                    PlayMusicStream(*activeMusic);
+                } else if (currentScreen == SCREEN_GAMEPLAY) {
+                    activeMusic = &inGameMusic;
+                    musicVolume = 1.0f;
+                    SetMusicVolume(*activeMusic, musicVolume);
+                    PlayMusicStream(*activeMusic);
+                } else if (currentScreen == SCREEN_MENU) {
+                    activeMusic = &menuMusic;
+                    musicVolume = 1.0f;
+                    SetMusicVolume(*activeMusic, musicVolume);
+                    PlayMusicStream(*activeMusic);
+                }
+            }
+            SetMusicVolume(*activeMusic, musicVolume);
+            
+            goto render_phase; 
+        }
+
         if (currentScreen == SCREEN_LOADING) {
             switch (loadStep) {
                 case 0:
                     menu.background = LoadTexture("images/Background/TitleBackground.PNG");
+                    
+                    //Music Load
+                    menuMusic = LoadMusicStream("Music/MainMenu.ogg"); 
+                    storyMusic = LoadMusicStream("Music/Story.ogg");
+                    inGameMusic = LoadMusicStream("Music/ingame.ogg");
+                    
                     loadProgress = 0.10f;
                     loadStep++;
                     break;
@@ -197,17 +255,23 @@ int main(void) {
                     break;
 
                 case 10:
+                    activeMusic = &menuMusic;
+                    SetMusicVolume(*activeMusic, 1.0f);
+                    PlayMusicStream(*activeMusic);
                     currentScreen = SCREEN_MENU;
                     break;
             }
         }
         else if (currentScreen == SCREEN_MENU) {
             int action = UpdateMenu(&menu, vMouse, vWidth, vHeight);
-            if (action == 1) currentScreen = SCREEN_SCENE1;
+            if (action == 1) {
+                fadeOutMusic = true;
+                nextScreenAfterFade = SCREEN_SCENE1; 
+            }
             if (action == 2) break;
         }
         else if (currentScreen == SCREEN_SCENE1) {
-            UpdateScene1(&scene1, vMouse, mouseClicked, vWidth);
+            UpdateScene1(&scene1, vMouse, mouseClicked, vWidth); 
             if (scene1.currentState == SCENE1_DONE) currentScreen = SCREEN_SCENE2;
         }
         else if (currentScreen == SCREEN_SCENE2) {
@@ -228,10 +292,12 @@ int main(void) {
         }
         else if (currentScreen == SCREEN_SCENE6) {
             UpdateScene6(&scene6, vMouse, mouseClicked, vWidth);
-            if (scene6.currentState == SCENE6_DONE) currentScreen = SCREEN_GAMEPLAY;
+            if (scene6.currentState == SCENE6_DONE) {
+                fadeOutMusic = true;
+                nextScreenAfterFade = SCREEN_GAMEPLAY;
+            }
         }
         else if (currentScreen == SCREEN_GAMEPLAY) {
-            // ONLY update gameplay if player is alive
             if (!player.isDead) {
                 UpdatePlayer(&player, &map);
                 camera.target = player.pos;
@@ -261,15 +327,18 @@ int main(void) {
                 }
             }
             else {
-                // Restart when dead
                 if (IsKeyPressed(KEY_R)) {
                     ResetGameplay(&player, &map, bandits, playerHistory, &historyIndex, &spawnTimer, &camera);
                 }
             }
 
-            if (IsKeyPressed(KEY_ESCAPE)) currentScreen = SCREEN_MENU;
+            if (IsKeyPressed(KEY_ESCAPE)) {
+                fadeOutMusic = true;
+                nextScreenAfterFade = SCREEN_MENU;
+            }
         }
 
+render_phase:
         BeginTextureMode(target);
             ClearBackground(BLACK);
 
@@ -321,7 +390,6 @@ int main(void) {
                 DrawPlayerUI(&player);
                 DrawText("ESC TO MENU | LSHIFT TO RUN", 10, vHeight - 30, 20, RAYWHITE);
 
-                // NEW: draw death overlay on top of gameplay
                 if (player.isDead) {
                     DrawDeathOverlay(vWidth, vHeight);
                 }
@@ -365,6 +433,12 @@ cleanup:
     UnloadTilemap(&map);
     UnloadTexture(menu.background);
     UnloadRenderTexture(target);
+    
+    UnloadMusicStream(menuMusic);
+    UnloadMusicStream(storyMusic);
+    UnloadMusicStream(inGameMusic);
+    CloseAudioDevice();
+    
     CloseWindow();
 
     return 0;

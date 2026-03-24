@@ -47,7 +47,6 @@ static inline void InitEnemy(Enemy *e, Vector2 startPos) {
 
     e->aggroRange = 220.0f;
 
-    // FIX: was 20.0f, too far for the small hitbox to touch player
     e->stopDistance = 2.0f;
 
     e->active = false;

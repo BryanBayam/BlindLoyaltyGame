@@ -112,7 +112,7 @@ static inline void UpdatePlayer(Player *p, const Tilemap *map) {
         }
     }
 
-    // Lower health regen so enemy damage can beat it
+    //Health regen
     p->health += 1.0f * dt;
     if (p->health > p->maxHealth) p->health = p->maxHealth;
 
