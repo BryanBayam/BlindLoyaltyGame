@@ -1,0 +1,52 @@
+{
+    "activeFile": "D:/Felix S1/S1 02/C Practice/Nasi Padang/Code/game/game/maps/map1/map1.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "D:/Felix S1/S1 02/C Practice/Nasi Padang/Code/game/game/maps/map1/map1.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 585,
+                "y": 321.5
+            }
+        },
+        "D:/Felix S1/S1 02/C Practice/Nasi Padang/Code/game/game/maps/map1/map1.tmx#decorative_cracks_floor": {
+            "scaleInDock": 1
+        },
+        "D:/Felix S1/S1 02/C Practice/Nasi Padang/Code/game/game/maps/map1/map1.tmx#floor_tile": {
+            "scaleInDock": 1
+        },
+        "D:/Felix S1/S1 02/C Practice/Nasi Padang/Code/game/game/maps/map1/map1.tmx#walls_floor": {
+            "scaleInDock": 1
+        },
+        "map2.tmx": {
+            "scale": 0.33,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1354.5454545454547,
+                "y": 80.30303030303025
+            }
+        },
+        "map2.tmx#bluewall_1": {
+            "scaleInDock": 1
+        },
+        "map2.tmx#tileset_sf": {
+            "scaleInDock": 1
+        }
+    },
+    "last.imagePath": "D:/Felix S1/S1 02/C Practice/Nasi Padang/Code/game/game/maps/map2/TileMap_SF/TileMap_SF",
+    "map.lastUsedFormat": "tmx",
+    "openFiles": [
+        "map2.tmx",
+        "D:/Felix S1/S1 02/C Practice/Nasi Padang/Code/game/game/maps/map1/map1.tmx"
+    ],
+    "project": "map2.tiled-project",
+    "recentFiles": [
+        "map2.tmx",
+        "D:/Felix S1/S1 02/C Practice/Nasi Padang/Code/game/game/maps/map1/map1.tmx"
+    ],
+    "tileset.embedInMap": true
+}

@@ -8,9 +8,11 @@
 
 typedef struct Player {
     Vector2 pos;
-    float walkSpeed;
-    float runSpeed;
+
+    float baseWalkSpeed;
+    float baseRunSpeed;
     float currentSpeed;
+    float speedMultiplier;
 
     Texture2D texWalk;
     Texture2D texRun;
@@ -31,6 +33,17 @@ typedef struct Player {
     float maxEnergy;
     float exhaustionTimer;
 
+    float runDrainPerSecond;
+    float energyRegenPerSecond;
+    float healthRegenPerSecond;
+
+    float damageSlowMultiplier;
+    float damageSlowTimer;
+    float damageSlowDuration;
+
+    float hurtBlinkTimer;
+    float hurtBlinkDuration;
+
     Texture2D texUI;
 
     bool isDead;
@@ -38,9 +51,11 @@ typedef struct Player {
 
 static inline void InitPlayer(Player *p, Vector2 startPos) {
     p->pos = startPos;
-    p->walkSpeed = 2.5f;
-    p->runSpeed = 5.0f;
-    p->currentSpeed = p->walkSpeed;
+
+    p->baseWalkSpeed = 1.6f;
+    p->baseRunSpeed = 3.0f;
+    p->currentSpeed = p->baseWalkSpeed;
+    p->speedMultiplier = 1.0f;
 
     p->texWalk = LoadTexture("images/Character/Reuben/Reuben_walk.png");
     p->texRun  = LoadTexture("images/Character/Reuben/Reuben_walk.png");
@@ -50,16 +65,28 @@ static inline void InitPlayer(Player *p, Vector2 startPos) {
     p->currentFrame = 0;
     p->currentLine = 3;
     p->frameTimer = 0.0f;
-    p->frameSpeed = 0.12f;
+    p->frameSpeed = 0.14f;
 
     p->width = 48.0f;
     p->height = 48.0f;
 
     p->maxHealth = 100.0f;
     p->health = 100.0f;
+
     p->maxEnergy = 100.0f;
     p->energy = 100.0f;
     p->exhaustionTimer = 0.0f;
+
+    p->runDrainPerSecond = 40.0f;
+    p->energyRegenPerSecond = 6.0f;
+    p->healthRegenPerSecond = 0.4f;
+
+    p->damageSlowMultiplier = 0.80f;
+    p->damageSlowTimer = 0.0f;
+    p->damageSlowDuration = 1.5f;
+
+    p->hurtBlinkTimer = 0.0f;
+    p->hurtBlinkDuration = 0.45f;
 
     p->texUI = LoadTexture("images/GUI/Reuben_Chat.png");
 
@@ -74,6 +101,30 @@ static inline Rectangle GetPlayerHitbox(Vector2 pos) {
         8.0f
     };
     return hitbox;
+}
+
+static inline void DamagePlayer(Player *p, float amount, float slowDuration) {
+    if (p->isDead) return;
+
+    p->health -= amount;
+    if (p->health <= 0.0f) {
+        p->health = 0.0f;
+        p->isDead = true;
+    }
+
+    p->damageSlowDuration = slowDuration;
+    p->damageSlowTimer = slowDuration;
+    p->hurtBlinkTimer = p->hurtBlinkDuration;
+}
+
+static inline void HealPlayer(Player *p, float amount) {
+    p->health += amount;
+    if (p->health > p->maxHealth) p->health = p->maxHealth;
+}
+
+static inline void AddPlayerEnergy(Player *p, float amount) {
+    p->energy += amount;
+    if (p->energy > p->maxEnergy) p->energy = p->maxEnergy;
 }
 
 static inline void UpdatePlayer(Player *p, const Tilemap *map) {
@@ -94,26 +145,35 @@ static inline void UpdatePlayer(Player *p, const Tilemap *map) {
         if (p->exhaustionTimer < 0.0f) p->exhaustionTimer = 0.0f;
     }
 
+    if (p->damageSlowTimer > 0.0f) {
+        p->damageSlowTimer -= dt;
+        if (p->damageSlowTimer < 0.0f) p->damageSlowTimer = 0.0f;
+    }
+
+    if (p->hurtBlinkTimer > 0.0f) {
+        p->hurtBlinkTimer -= dt;
+        if (p->hurtBlinkTimer < 0.0f) p->hurtBlinkTimer = 0.0f;
+    }
+
     bool isRunning = IsKeyDown(KEY_LEFT_SHIFT) &&
                      isMoving &&
                      (p->energy > 0.0f) &&
                      (p->exhaustionTimer <= 0.0f);
 
     if (isRunning) {
-        p->energy -= 20.0f * dt;
+        p->energy -= p->runDrainPerSecond * dt;
         if (p->energy <= 0.0f) {
             p->energy = 0.0f;
             p->exhaustionTimer = 2.0f;
         }
     } else {
         if (p->exhaustionTimer <= 0.0f) {
-            p->energy += 4.0f * dt;
+            p->energy += p->energyRegenPerSecond * dt;
             if (p->energy > p->maxEnergy) p->energy = p->maxEnergy;
         }
     }
 
-    //Health regen
-    p->health += 1.0f * dt;
+    p->health += p->healthRegenPerSecond * dt;
     if (p->health > p->maxHealth) p->health = p->maxHealth;
 
     if (p->health <= 0.0f) {
@@ -122,15 +182,21 @@ static inline void UpdatePlayer(Player *p, const Tilemap *map) {
         return;
     }
 
+    float slowFactor = (p->damageSlowTimer > 0.0f) ? p->damageSlowMultiplier : 1.0f;
+    float walkSpeed = p->baseWalkSpeed * p->speedMultiplier * slowFactor;
+    float runSpeed = p->baseRunSpeed * p->speedMultiplier * slowFactor;
+
     if (isMoving) {
         direction = Vector2Normalize(direction);
 
         if (isRunning) {
-            p->currentSpeed = p->runSpeed;
-            p->frameSpeed = 0.08f;
+            p->currentSpeed = runSpeed;
+            p->frameSpeed = 0.10f;
+            p->activeTex = &p->texRun;
         } else {
-            p->currentSpeed = p->walkSpeed;
-            p->frameSpeed = 0.14f;
+            p->currentSpeed = walkSpeed;
+            p->frameSpeed = 0.16f;
+            p->activeTex = &p->texWalk;
         }
 
         Vector2 nextPos = p->pos;
@@ -177,7 +243,13 @@ static inline void DrawPlayer(Player *p) {
     Rectangle destRec = { p->pos.x, p->pos.y, p->width, p->height };
     Vector2 origin = { p->width / 2.0f, p->height / 2.0f };
 
-    DrawTexturePro(*p->activeTex, sourceRec, destRec, origin, 0.0f, WHITE);
+    Color tint = WHITE;
+    if (p->hurtBlinkTimer > 0.0f) {
+        int blinkPhase = ((int)(p->hurtBlinkTimer * 20.0f)) % 2;
+        if (blinkPhase == 0) tint = RED;
+    }
+
+    DrawTexturePro(*p->activeTex, sourceRec, destRec, origin, 0.0f, tint);
 }
 
 static inline void DrawPlayerUI(Player *p) {
