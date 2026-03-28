@@ -1,0 +1,7 @@
+Commander|You've got a new mission from the president!|audio/Voice/Scene 1/Commander part 1.mp3
+Reuben|What mission commander?|audio/Voice/Scene 1/Reuben part 1.mp3
+Commander|As usual... You need to eliminate a monster for the government.|audio/Voice/Scene 1/Commander part 2.mp3
+Reuben|Could you give me more details about that?|audio/Voice/Scene 1/Reuben part 2.mp3
+Commander|For the past 2 years, The Bandit Village tribes stole our \narmy's food supplies. But, they move like a shadow. No one \ncan ever touch them.|audio/Voice/Scene 1/Commander part 3.mp3
+Reuben|So what's your plan commander?|audio/Voice/Scene 1/Reuben part 3.mp3
+Commander|You need to find their secret bunker in order to prove \nthat they stole the military supplies. Then we will launch \nmassive troops to capture them. And the media will record \nit to the world. Do you understand your task?|audio/Voice/Scene 1/Commander part 4.mp3

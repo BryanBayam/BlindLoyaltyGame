@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "tilemap.h"
+#include "menu.h" // ADDED: So the player knows about our Keybinds struct
 #include <stdbool.h>
 
 typedef struct Player {
@@ -135,7 +136,8 @@ static inline void AddPlayerEnergy(Player *p, float amount) {
     if (p->energy > p->maxEnergy) p->energy = p->maxEnergy;
 }
 
-static inline void UpdatePlayer(Player *p, const Tilemap *map) {
+// FIXED: Now takes "Keybinds keys" as an argument
+static inline void UpdatePlayer(Player *p, const Tilemap *map, Keybinds keys) {
     if (p->isDead) return;
 
     float dt = GetFrameTime();
@@ -146,10 +148,11 @@ static inline void UpdatePlayer(Player *p, const Tilemap *map) {
         if (p->walkSfxTimer < 0.0f) p->walkSfxTimer = 0.0f;
     }
 
-    if (IsKeyDown(KEY_D)) { direction.x += 1.0f; p->currentLine = 1; }
-    if (IsKeyDown(KEY_A)) { direction.x -= 1.0f; p->currentLine = 2; }
-    if (IsKeyDown(KEY_W)) { direction.y -= 1.0f; p->currentLine = 0; }
-    if (IsKeyDown(KEY_S)) { direction.y += 1.0f; p->currentLine = 3; }
+    // FIXED: Now uses dynamic keybinds
+    if (IsKeyDown(keys.right)) { direction.x += 1.0f; p->currentLine = 1; }
+    if (IsKeyDown(keys.left))  { direction.x -= 1.0f; p->currentLine = 2; }
+    if (IsKeyDown(keys.up))    { direction.y -= 1.0f; p->currentLine = 0; }
+    if (IsKeyDown(keys.down))  { direction.y += 1.0f; p->currentLine = 3; }
 
     bool isMoving = (direction.x != 0.0f || direction.y != 0.0f);
 
@@ -168,7 +171,8 @@ static inline void UpdatePlayer(Player *p, const Tilemap *map) {
         if (p->hurtBlinkTimer < 0.0f) p->hurtBlinkTimer = 0.0f;
     }
 
-    bool isRunning = IsKeyDown(KEY_LEFT_SHIFT) &&
+    // FIXED: Uses dynamic run key
+    bool isRunning = IsKeyDown(keys.run) &&
                      isMoving &&
                      (p->energy > 0.0f) &&
                      (p->exhaustionTimer <= 0.0f);
