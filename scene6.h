@@ -5,11 +5,30 @@
 #include <string.h>
 #include <stdbool.h>
 
+/*
+ * Timing constants used to synchronize the typewriter text effect
+ * with narration audio.
+ *
+ * SCENE6_TEXT_LEAD_SECONDS      : Target time for text to finish before voice ends
+ * SCENE6_SHORT_VOICE_THRESHOLD  : Voice clips shorter than this use a fixed text speed
+ * SCENE6_SHORT_VOICE_TEXT_SPEED : Fixed text speed for short voice clips
+ * SCENE6_MIN_TEXT_DURATION      : Minimum allowed text reveal duration
+ */
 #define SCENE6_TEXT_LEAD_SECONDS 3.0f
 #define SCENE6_SHORT_VOICE_THRESHOLD 5.0f
 #define SCENE6_SHORT_VOICE_TEXT_SPEED 0.03f
 #define SCENE6_MIN_TEXT_DURATION 0.15f
 
+/*
+ * Runtime states for Scene 6.
+ *
+ * SCENE6_FADE_IN       : Fade from black into the scene
+ * SCENE6_TEXT_1        : Show the first narrator text block
+ * SCENE6_FADE_TO_BLACK : Fade to black between text sections
+ * SCENE6_TEXT_2        : Show the second narrator text block
+ * SCENE6_WAIT          : Wait for player confirmation after the final text
+ * SCENE6_DONE          : Scene has finished
+ */
 typedef enum {
     SCENE6_FADE_IN,
     SCENE6_TEXT_1,
@@ -19,6 +38,18 @@ typedef enum {
     SCENE6_DONE
 } Scene6State;
 
+/*
+ * Runtime data for Scene 6.
+ *
+ * Fields include:
+ * - background texture
+ * - current scene state
+ * - narrator name and text content
+ * - typewriter animation state
+ * - fade state
+ * - audio clips and their durations
+ * - flags to ensure each clip starts only once
+ */
 typedef struct {
     Texture2D bgTexture;
     Scene6State currentState;
@@ -44,10 +75,16 @@ typedef struct {
     bool text2Started;
 } Scene6;
 
-/* =========================================================
-   HELPERS
-   ========================================================= */
-
+/*
+ * Load a voice clip and return its duration in seconds.
+ *
+ * Parameters:
+ * - path: Audio file path
+ * - outSound: Output sound handle
+ *
+ * Returns:
+ * - duration of the loaded voice clip
+ */
 static inline float Scene6LoadVoiceWithDuration(const char* path, Sound* outSound) {
     Wave wave = LoadWave(path);
 
@@ -62,18 +99,23 @@ static inline float Scene6LoadVoiceWithDuration(const char* path, Sound* outSoun
     return duration;
 }
 
+/*
+ * Calculate the per-character reveal speed for the typewriter effect.
+ *
+ * Rules:
+ * - if the voice clip is short, use a constant reveal speed
+ * - otherwise, aim to finish the text slightly before the voice ends
+ * - always enforce a minimum readable duration
+ */
 static inline float Scene6CalcTextSpeed(const char* text, float voiceDuration, float fallbackSpeed) {
     int units = TextLength(text);
     if (units <= 0) return fallbackSpeed;
     if (voiceDuration <= 0.0f) return fallbackSpeed;
 
-    // Scene 1 rule:
-    // if voice duration < 5 sec, use constant 0.03f
     if (voiceDuration < SCENE6_SHORT_VOICE_THRESHOLD) {
         return SCENE6_SHORT_VOICE_TEXT_SPEED;
     }
 
-    // otherwise finish text 3 seconds earlier than the voice
     float targetTextDuration = voiceDuration - SCENE6_TEXT_LEAD_SECONDS;
     if (targetTextDuration < SCENE6_MIN_TEXT_DURATION) {
         targetTextDuration = SCENE6_MIN_TEXT_DURATION;
@@ -82,6 +124,15 @@ static inline float Scene6CalcTextSpeed(const char* text, float voiceDuration, f
     return targetTextDuration / (float)units;
 }
 
+/*
+ * Advance the typewriter effect by revealing characters over time.
+ *
+ * Parameters:
+ * - charsDrawn: Current number of visible characters
+ * - maxChars: Total number of characters in the text
+ * - timer: Accumulated time used for reveal timing
+ * - charDelay: Delay between each revealed character
+ */
 static inline void Scene6RevealTextSync(int* charsDrawn, int maxChars, float* timer, float charDelay) {
     if (*charsDrawn >= maxChars) return;
 
@@ -99,32 +150,48 @@ static inline void Scene6RevealTextSync(int* charsDrawn, int maxChars, float* ti
     }
 }
 
+/*
+ * Start playback and text animation for the first narration block.
+ * Safe to call multiple times because it only runs once.
+ */
 static inline void Scene6StartText1(Scene6* scene) {
     if (scene->text1Started) return;
 
     scene->charsDrawn = 0;
     scene->textTimer = 0.0f;
-    scene->textSpeed = Scene6CalcTextSpeed(scene->text1, scene->text1Duration, scene->defaultTextSpeed);
+    scene->textSpeed = Scene6CalcTextSpeed(
+        scene->text1,
+        scene->text1Duration,
+        scene->defaultTextSpeed
+    );
 
     PlaySound(scene->text1Voice);
     scene->text1Started = true;
 }
 
+/*
+ * Start playback and text animation for the second narration block.
+ * Safe to call multiple times because it only runs once.
+ */
 static inline void Scene6StartText2(Scene6* scene) {
     if (scene->text2Started) return;
 
     scene->charsDrawn = 0;
     scene->textTimer = 0.0f;
-    scene->textSpeed = Scene6CalcTextSpeed(scene->text2, scene->text2Duration, scene->defaultTextSpeed);
+    scene->textSpeed = Scene6CalcTextSpeed(
+        scene->text2,
+        scene->text2Duration,
+        scene->defaultTextSpeed
+    );
 
     PlaySound(scene->text2Voice);
     scene->text2Started = true;
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
-
+/*
+ * Initialize Scene 6 with default visuals, text, timing,
+ * fade values, and narration audio.
+ */
 static inline void InitScene6(Scene6* scene) {
     scene->bgTexture = LoadTexture("images/Background/Scene/Scene6.jpg");
 
@@ -146,17 +213,34 @@ static inline void InitScene6(Scene6* scene) {
     scene->textSpeed = scene->defaultTextSpeed;
     scene->fadeAlpha = 1.0f;
 
-    scene->text1Duration = Scene6LoadVoiceWithDuration("audio/Voice/Scene 6/Narrator part 1.mp3", &scene->text1Voice);
-    scene->text2Duration = Scene6LoadVoiceWithDuration("audio/Voice/Scene 6/Narrator part 2.mp3", &scene->text2Voice);
+    scene->text1Duration = Scene6LoadVoiceWithDuration(
+        "audio/Voice/Scene 6/Narrator part 1.mp3",
+        &scene->text1Voice
+    );
+    scene->text2Duration = Scene6LoadVoiceWithDuration(
+        "audio/Voice/Scene 6/Narrator part 2.mp3",
+        &scene->text2Voice
+    );
 
     scene->text1Started = false;
     scene->text2Started = false;
 }
 
-/* =========================================================
-   UPDATE
-   ========================================================= */
-
+/*
+ * Update Scene 6 each frame.
+ *
+ * Scene flow:
+ * 1. Fade in from black
+ * 2. Reveal the first narration text with synchronized voice
+ * 3. Fade to black
+ * 4. Reveal the second narration text
+ * 5. Wait for player confirmation
+ * 6. Mark the scene as complete
+ *
+ * Player input can:
+ * - instantly complete the current text reveal
+ * - advance to the next state when the current text is finished
+ */
 static inline void UpdateScene6(Scene6* scene, Vector2 mousePos, bool mouseClicked, int screenWidth) {
     (void)mousePos;
     (void)screenWidth;
@@ -172,14 +256,18 @@ static inline void UpdateScene6(Scene6* scene, Vector2 mousePos, bool mouseClick
         Scene6StartText1(scene);
 
         if (scene->charsDrawn < scene->text1Length) {
-            Scene6RevealTextSync(&scene->charsDrawn, scene->text1Length, &scene->textTimer, scene->textSpeed);
+            Scene6RevealTextSync(
+                &scene->charsDrawn,
+                scene->text1Length,
+                &scene->textTimer,
+                scene->textSpeed
+            );
 
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || mouseClicked) {
                 scene->charsDrawn = scene->text1Length;
                 StopSound(scene->text1Voice);
             }
-        }
-        else {
+        } else {
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || mouseClicked) {
                 StopSound(scene->text1Voice);
                 scene->currentState = SCENE6_FADE_TO_BLACK;
@@ -199,14 +287,18 @@ static inline void UpdateScene6(Scene6* scene, Vector2 mousePos, bool mouseClick
         Scene6StartText2(scene);
 
         if (scene->charsDrawn < scene->text2Length) {
-            Scene6RevealTextSync(&scene->charsDrawn, scene->text2Length, &scene->textTimer, scene->textSpeed);
+            Scene6RevealTextSync(
+                &scene->charsDrawn,
+                scene->text2Length,
+                &scene->textTimer,
+                scene->textSpeed
+            );
 
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || mouseClicked) {
                 scene->charsDrawn = scene->text2Length;
                 StopSound(scene->text2Voice);
             }
-        }
-        else {
+        } else {
             scene->currentState = SCENE6_WAIT;
         }
     }
@@ -218,10 +310,16 @@ static inline void UpdateScene6(Scene6* scene, Vector2 mousePos, bool mouseClick
     }
 }
 
-/* =========================================================
-   DRAW
-   ========================================================= */
-
+/*
+ * Draw Scene 6 based on the current state.
+ *
+ * Visual behavior:
+ * - always draw the background
+ * - show the first text block in a dialogue box
+ * - apply a fade overlay during transitions
+ * - show the second text block centered on screen
+ * - display a mission-start prompt while waiting for confirmation
+ */
 static inline void DrawScene6(Scene6* scene, int screenWidth, int screenHeight) {
     DrawTexturePro(
         scene->bgTexture,
@@ -261,18 +359,30 @@ static inline void DrawScene6(Scene6* scene, int screenWidth, int screenHeight) 
         const char* currentNarText = TextSubtext(scene->text2, 0, scene->charsDrawn);
         int textWidth = MeasureText(currentNarText, 28);
 
-        DrawText(currentNarText, (screenWidth / 2) - (textWidth / 2), screenHeight / 2 - 30, 28, RAYWHITE);
+        DrawText(
+            currentNarText,
+            (screenWidth / 2) - (textWidth / 2),
+            screenHeight / 2 - 30,
+            28,
+            RAYWHITE
+        );
 
         if (scene->currentState == SCENE6_WAIT) {
-            DrawText("PRESS ENTER TO START MISSION", screenWidth / 2 - 160, screenHeight - 60, 20, LIGHTGRAY);
+            DrawText(
+                "PRESS ENTER TO START MISSION",
+                screenWidth / 2 - 160,
+                screenHeight - 60,
+                20,
+                LIGHTGRAY
+            );
         }
     }
 }
 
-/* =========================================================
-   UNLOAD
-   ========================================================= */
-
+/*
+ * Release all resources owned by Scene 6.
+ * This should be called when the scene is no longer needed.
+ */
 static inline void UnloadScene6(Scene6* scene) {
     StopSound(scene->text1Voice);
     StopSound(scene->text2Voice);
@@ -281,4 +391,4 @@ static inline void UnloadScene6(Scene6* scene) {
     UnloadTexture(scene->bgTexture);
 }
 
-#endif 
+#endif

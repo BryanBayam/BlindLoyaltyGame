@@ -6,34 +6,78 @@
 #include <string.h>
 #include <stdbool.h>
 
-// This struct holds everything we want to remember
+/*
+ * Stores the data needed to restore a saved game state.
+ *
+ * Fields:
+ * - name: User-defined save slot name
+ * - playerPos: Player position at the time of saving
+ * - health: Player health value
+ * - energy: Player stamina/energy value
+ * - savedScreen: Screen/state to restore when loading
+ */
 typedef struct {
-    char name[32];      // The custom name the player types
-    Vector2 playerPos;  // Reuben's exact X and Y position
-    float health;       // Reuben's health
-    float energy;       // Reuben's energy/stamina
-    int savedScreen;    // NEW: Remembers if you were in a Story Scene or Gameplay
+    char name[32];
+    Vector2 playerPos;
+    float health;
+    float energy;
+    int savedScreen;
 } GameSaveData;
 
-// Writes the data to a file
+/*
+ * Save game data to a slot file.
+ *
+ * Parameters:
+ * - slot: Save slot index
+ * - data: Save data to write
+ *
+ * Returns:
+ * - true if the file was written successfully
+ * - false if the file could not be opened
+ */
 static inline bool SaveGameData(int slot, GameSaveData data) {
     FILE *file = fopen(TextFormat("save_slot_%d.dat", slot), "wb");
-    if (!file) return false;
+    if (!file) {
+        return false;
+    }
+
     fwrite(&data, sizeof(GameSaveData), 1, file);
     fclose(file);
     return true;
 }
 
-// Reads the data from a file
+/*
+ * Load game data from a slot file.
+ *
+ * Parameters:
+ * - slot: Save slot index
+ * - data: Output pointer that receives the loaded save data
+ *
+ * Returns:
+ * - true if the file was read successfully
+ * - false if the file could not be opened
+ */
 static inline bool LoadGameData(int slot, GameSaveData *data) {
     FILE *file = fopen(TextFormat("save_slot_%d.dat", slot), "rb");
-    if (!file) return false;
+    if (!file) {
+        return false;
+    }
+
     fread(data, sizeof(GameSaveData), 1, file);
     fclose(file);
     return true;
 }
 
-// Checks if a save file exists
+/*
+ * Check whether a save file exists for the given slot.
+ *
+ * Parameters:
+ * - slot: Save slot index
+ *
+ * Returns:
+ * - true if the save file exists
+ * - false if the save file does not exist
+ */
 static inline bool SaveExists(int slot) {
     return FileExists(TextFormat("save_slot_%d.dat", slot));
 }
