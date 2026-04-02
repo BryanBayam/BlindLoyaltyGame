@@ -1,0 +1,9 @@
+Reuben|This does not look like a bandit village.|audio/Voice/Scene 7/Reuben part 1.mp3
+Reuben|Something weird is going on...|audio/Voice/Scene 7/Reuben part 2.mp3
+Reuben|Forget it, I have to focus on the mission.|audio/Voice/Scene 7/Reuben part 3.mp3
+Reuben|I finally found the bunker location...|audio/Voice/Scene 7/Reuben part 4.mp3
+Boss Bandit|Wait! Why are you here? \nWhy is the government sending soldiers here?|audio/Voice/Scene 7/Boss Bandit part 1.mp3
+Reuben|Don’t act innocent. \nYou bandits are stealing our nation’s supplies!|audio/Voice/Scene 7/Reuben part 5.mp3
+Boss Bandit|What?? No… that’s not true, Why wo-|audio/Voice/Scene 7/Boss Bandit part 2.mp3
+Reuben|Shut up! Put your hands where I can see them!|audio/Voice/Scene 7/Reuben part 6.mp3
+Boss Bandit|Believe us… We are good citizens. But, my sister betrayed \nus, joining the government to steal our land and food supplies. \nJust look around…|audio/Voice/Scene 7/Boss Bandit part 3.mp3

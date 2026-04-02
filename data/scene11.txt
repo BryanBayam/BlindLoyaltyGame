@@ -1,0 +1,6 @@
+Commander|Wake up… You got a new mission!
+Commander|This is a very serious situation. Our intelligence \nhas informed us that “Oasis Media” is planning \nto broadcast news claiming that the government \nis attacking villagers to seize their land.
+Reuben|No way… When will the broadcast start?
+Commander|Tomorrow. So you need to go quickly.
+Commander|I’ll be waiting at the President’s Office. \nMake sure to contact me after you come back.
+Commander|Oh, If you see any classified documents, \ndon’t open them.

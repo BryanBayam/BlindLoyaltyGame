@@ -6,51 +6,19 @@
 #include "tilemap.h"
 #include "character.h"
 
-/*
- * Number of pickup instances to spawn for each pickup category.
- */
 #define HEART_COUNT 2
 #define SPEED_COUNT 3
-
-/*
- * Render size for heart pickups.
- */
 #define HEART_DRAW_WIDTH   16.0f
 #define HEART_DRAW_HEIGHT  16.0f
-
-/*
- * Render size for speed pickups.
- */
 #define SPEED_DRAW_WIDTH   32.0f
 #define SPEED_DRAW_HEIGHT  16.0f
-
-/*
- * Minimum distance allowed between spawned pickups.
- * This helps prevent item overlap and improves map distribution.
- */
 #define PICKUP_MIN_SEPARATION 80.0f
 
-/*
- * Pickup category used to determine appearance and effect.
- *
- * PICKUP_HEART : Restores player health
- * PICKUP_SPEED : Increases movement speed and restores some energy
- */
 typedef enum PickupType {
     PICKUP_HEART,
     PICKUP_SPEED
 } PickupType;
 
-/*
- * Represents a single collectible pickup in the world.
- *
- * Fields:
- * - texture: Texture used when drawing the pickup
- * - pos: World position of the pickup
- * - hitbox: Collision area used for pickup detection
- * - active: True if the pickup is currently available in the world
- * - type: Pickup category that controls its behavior and draw size
- */
 typedef struct Pickup {
     Texture2D *texture;
     Vector2 pos;
@@ -59,44 +27,20 @@ typedef struct Pickup {
     PickupType type;
 } Pickup;
 
-/*
- * Spawn and initialize all heart and speed pickups on valid map positions.
- */
 void SpawnPickups(const Tilemap *map, Pickup hearts[], int heartCount, Texture2D *heartTexture, Pickup speeds[], int speedCount, Texture2D *speedTexture);
-
-/*
- * Draw a pickup if it is active and has a valid texture.
- */
 void DrawPickup(const Pickup *pickup);
-
-/*
- * Check whether the player collides with any active pickup
- * and apply the corresponding effect.
- */
 void CheckPickupCollisions(Player *player, Pickup hearts[], Pickup speeds[]);
-
-#endif
 
 #ifdef PICKUP_IMPLEMENTATION
 
-/*
- * Return the draw width for a pickup based on its type.
- */
 static float GetPickupDrawWidth(PickupType type) {
     return (type == PICKUP_SPEED) ? SPEED_DRAW_WIDTH : HEART_DRAW_WIDTH;
 }
 
-/*
- * Return the draw height for a pickup based on its type.
- */
 static float GetPickupDrawHeight(PickupType type) {
     return (type == PICKUP_SPEED) ? SPEED_DRAW_HEIGHT : HEART_DRAW_HEIGHT;
 }
 
-/*
- * Build the collision hitbox for a pickup based on its
- * centered world position and pickup type.
- */
 static Rectangle GetPickupHitboxByType(Vector2 pos, PickupType type) {
     float width = GetPickupDrawWidth(type);
     float height = GetPickupDrawHeight(type);
@@ -109,13 +53,6 @@ static Rectangle GetPickupHitboxByType(Vector2 pos, PickupType type) {
     };
 }
 
-/*
- * Check whether a pickup can be placed at the given position.
- *
- * Conditions:
- * - the full pickup hitbox must stay inside map bounds
- * - the pickup must not overlap blocked map tiles
- */
 static bool CanPlacePickupAt(Vector2 pos, PickupType type, const Tilemap *map) {
     Rectangle rect = GetPickupHitboxByType(pos, type);
     float mapW = (float)map->width * map->tileWidth;
@@ -128,13 +65,6 @@ static bool CanPlacePickupAt(Vector2 pos, PickupType type, const Tilemap *map) {
     return !CheckMapCollision(map, rect);
 }
 
-/*
- * Find a random valid world position for a pickup of the given type.
- *
- * The function retries several times to find a valid location.
- * If no random position is found, it falls back to a general
- * walkable spawn position from the map system.
- */
 static Vector2 FindRandomWalkablePoint(const Tilemap *map, PickupType type) {
     for (int attempt = 0; attempt < 1000; attempt++) {
         Vector2 candidate = {
@@ -150,26 +80,16 @@ static Vector2 FindRandomWalkablePoint(const Tilemap *map, PickupType type) {
     return FindWalkableSpawn(map);
 }
 
-/*
- * Spawn and initialize heart and speed pickups.
- *
- * Spawn rules:
- * - all pickups must be placed on valid walkable positions
- * - pickups must not be placed too close to each other
- * - each pickup is initialized with type, texture, position, and hitbox
- */
 void SpawnPickups(const Tilemap *map, Pickup hearts[], int heartCount, Texture2D *heartTexture, Pickup speeds[], int speedCount, Texture2D *speedTexture) {
     Pickup all[HEART_COUNT + SPEED_COUNT] = { 0 };
     int totalPlaced = 0;
 
-    /* Initialize heart pickup metadata before placement. */
     for (int i = 0; i < heartCount; i++) {
         hearts[i].active = false;
         hearts[i].type = PICKUP_HEART;
         hearts[i].texture = heartTexture;
     }
 
-    /* Initialize speed pickup metadata before placement. */
     for (int i = 0; i < speedCount; i++) {
         speeds[i].active = false;
         speeds[i].type = PICKUP_SPEED;
@@ -178,7 +98,6 @@ void SpawnPickups(const Tilemap *map, Pickup hearts[], int heartCount, Texture2D
 
     float minSepSq = PICKUP_MIN_SEPARATION * PICKUP_MIN_SEPARATION;
 
-    /* Place heart pickups while respecting minimum spacing. */
     for (int i = 0; i < heartCount; i++) {
         for (int attempt = 0; attempt < 1000; attempt++) {
             Vector2 pos = FindRandomWalkablePoint(map, PICKUP_HEART);
@@ -203,7 +122,6 @@ void SpawnPickups(const Tilemap *map, Pickup hearts[], int heartCount, Texture2D
         }
     }
 
-    /* Place speed pickups while respecting minimum spacing. */
     for (int i = 0; i < speedCount; i++) {
         for (int attempt = 0; attempt < 1000; attempt++) {
             Vector2 pos = FindRandomWalkablePoint(map, PICKUP_SPEED);
@@ -229,15 +147,6 @@ void SpawnPickups(const Tilemap *map, Pickup hearts[], int heartCount, Texture2D
     }
 }
 
-/*
- * Check collision between the player and all active pickups.
- *
- * Effects:
- * - Heart pickup restores health
- * - Speed pickup increases speed multiplier and restores energy
- *
- * Collected pickups are deactivated after use.
- */
 void CheckPickupCollisions(Player *player, Pickup hearts[], Pickup speeds[]) {
     Rectangle pBox = GetPlayerHitbox(player->pos);
 
@@ -257,10 +166,6 @@ void CheckPickupCollisions(Player *player, Pickup hearts[], Pickup speeds[]) {
     }
 }
 
-/*
- * Draw a pickup using its configured texture and size.
- * Inactive pickups or invalid textures are ignored.
- */
 void DrawPickup(const Pickup *pickup) {
     if (!pickup->active || pickup->texture == NULL || pickup->texture->id <= 0) {
         return;
@@ -291,4 +196,5 @@ void DrawPickup(const Pickup *pickup) {
     DrawTexturePro(*pickup->texture, src, dst, origin, 0.0f, WHITE);
 }
 
-#endif
+#endif // PICKUP_IMPLEMENTATION
+#endif // PICKUP_H // <--- Moved from the middle to the bottom!
