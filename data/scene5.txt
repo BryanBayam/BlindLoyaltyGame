@@ -1,1 +1,1 @@
-Narrator|At the age of nineteen, you were recruited. The Special Force saw potential\n in you... Calm under pressure, loyal, and capable of making decisions without\n hesitation.|audio/Voice/Scene 5/Narrator.mp3
+Narrator|At the age of nineteen, you were recruited. The Special Force saw potential\nin you... Calm under pressure, loyal, and capable of making decisions without\nhesitation.|audio/Voice/Scene 5/Narrator.mp3

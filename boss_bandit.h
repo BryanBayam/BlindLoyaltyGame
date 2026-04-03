@@ -51,10 +51,17 @@ void InitBossBandit(Enemy *boss, Vector2 startPos) {
 
     /* Sprite and animation setup. */
     boss->frameCount = 4;
+    boss->currentFrame = 0;
     boss->currentLine = 3;
     boss->width = 48.0f;
     boss->height = 48.0f;
+
+    /*
+     * Use the same folder naming style as the other Boss Bandit assets.
+     * This fixes the invisible-boss issue when the previous path does not exist.
+     */
     boss->tex = LoadTexture("images/Character/Boss Bandit/BossBandit_walk.png");
+
     boss->frameSpeed = 0.12f;
 
     /* Movement and combat tuning. */

@@ -1,0 +1,3 @@
+Ashat Leader|You are such a tough man... I acknowledge my loss.\nBut I need to tell you something. |audio/Voice/Scene 17_2/Ashat Leader part 1.mp3
+Reuben|About what? |audio/Voice/Scene 17_2/Reuben part 1.mp3
+Ashat Leader|The president is a very cruel leader. He wants to take our land,\nso we need to defend our tribe. I know that you are a good leader,\nso our tribe will support you if you want to rebel to the government. |audio/Voice/Scene 17_2/Ashat Leader part 2.mp3

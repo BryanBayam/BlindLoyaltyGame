@@ -1,6 +1,6 @@
-Commander|Wake up… You got a new mission! |audio/Voice/Scene 11/Commander part 1.mp3
-Commander|This is a very serious situation. Our intelligence \nhas informed us that “Oasis Media” is planning \nto broadcast news claiming that the government \nis attacking villagers to seize their land. |audio/Voice/Scene 11/Commander part 2.mp3
-Reuben|No way… When will the broadcast start? 
+Commander|Wake up... You got a new mission! |audio/Voice/Scene 11/Commander part 1.mp3
+Commander|This is a very serious situation. Our intelligence \nhas informed us that Oasis Media is planning \nto broadcast news claiming that the government \nis attacking villagers to seize their land. |audio/Voice/Scene 11/Commander part 2.mp3
+Reuben|No way... When will the broadcast start? |audio/Voice/Scene 11/Reuben part 1.mp3
 Commander|Tomorrow. So you need to go quickly. |audio/Voice/Scene 11/Commander part 3.mp3
 Commander|I'll be waiting at the President's Office. \nMake sure to contact me after you come back. |audio/Voice/Scene 11/Commander part 4.mp3
 Commander|Oh, If you see any classified documents, \ndon't open them. |audio/Voice/Scene 11/Commander part 5.mp3

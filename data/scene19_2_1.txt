@@ -1,0 +1,5 @@
+Commander|Hahaha... you finally found out the truth huh... |audio/Voice/Scene 19_2_1/Commander part 1.mp3
+Reuben|Of course. I need to rush to the government office.\nGive me the way... |audio/Voice/Scene 19_2_1/Reuben part 1.mp3
+Commander|It's too late. No one will save you now, and the\nAshat Tribe will also perish... |audio/Voice/Scene 19_2_1/Commander part 2.mp3
+Reuben|It will not happen... |audio/Voice/Scene 19_2_1/Reuben part 2.mp3
+Commander|Stop being too confident Reuben. You won't be able\nto defeat me! |audio/Voice/Scene 19_2_1/Commander part 3.mp3

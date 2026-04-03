@@ -60,10 +60,13 @@ typedef struct Player {
     /* UI texture */
     Texture2D texUI;
 
-    /* Movement sound effect */
+    /* Movement sound effects */
     Sound walkSfx;
     float walkSfxTimer;
     float walkSfxInterval;
+
+    Sound speedUseSfx;
+    bool speedUseSfxPlaying;
 
     /* Death state */
     bool isDead;
@@ -128,6 +131,10 @@ static inline void InitPlayer(Player *p, Vector2 startPos) {
     p->walkSfx = LoadSound("audio/Sfx/walk.mp3");
     p->walkSfxTimer = 0.0f;
     p->walkSfxInterval = 0.32f;
+
+    /* Running sound */
+    p->speedUseSfx = LoadSound("audio/Sfx/speeduse.mp3");
+    p->speedUseSfxPlaying = false;
 
     p->isDead = false;
 }
@@ -239,12 +246,23 @@ static inline void UpdatePlayer(Player *p, const Tilemap *map, Keybinds keys) {
                      (p->energy > 0.0f) &&
                      (p->exhaustionTimer <= 0.0f);
 
+    if (isRunning && !p->speedUseSfxPlaying) {
+        PlaySound(p->speedUseSfx);
+        p->speedUseSfxPlaying = true;
+    }
+    else if (!isRunning && p->speedUseSfxPlaying) {
+        StopSound(p->speedUseSfx);
+        p->speedUseSfxPlaying = false;
+    }
+
     /* Running drains energy; otherwise there is no passive energy regeneration */
     if (isRunning) {
         p->energy -= p->runDrainPerSecond * dt;
         if (p->energy <= 0.0f) {
             p->energy = 0.0f;
             p->exhaustionTimer = 2.0f;
+            StopSound(p->speedUseSfx);
+            p->speedUseSfxPlaying = false;
         }
     }
 
@@ -312,6 +330,11 @@ static inline void UpdatePlayer(Player *p, const Tilemap *map, Keybinds keys) {
         p->currentFrame = 2;
         p->frameTimer = 0.0f;
         p->walkSfxTimer = 0.0f;
+
+        if (p->speedUseSfxPlaying) {
+            StopSound(p->speedUseSfx);
+            p->speedUseSfxPlaying = false;
+        }
     }
 }
 
@@ -401,6 +424,6 @@ static inline void UnloadPlayer(Player *p) {
     UnloadTexture(p->texRun);
     UnloadTexture(p->texUI);
     UnloadSound(p->walkSfx);
+    UnloadSound(p->speedUseSfx);
 }
-
 #endif

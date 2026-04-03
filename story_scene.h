@@ -10,6 +10,7 @@
 #define MAX_PORTRAITS 5
 #define SCENE_TEXT_LEAD_SECONDS 3.0f
 #define SCENE_MIN_TEXT_DURATION 0.15f
+#define CHOICE_WARNING_DURATION 1.5f
 
 /*
  * Portrait configuration used by scene setup data.
@@ -45,7 +46,7 @@ typedef struct {
  * Static scene configuration used to initialize a runtime story scene.
  *
  * This structure stores background settings, portrait definitions,
- * parsed dialogue lines, one optional confirmation button,
+ * parsed dialogue lines, optional buttons,
  * narrator text, optional narrator voice, and the raw loaded dialogue buffer.
  */
 typedef struct {
@@ -60,8 +61,9 @@ typedef struct {
     DialogueData lines[MAX_SCENE_LINES];
     int lineCount;
 
-    /* Optional single confirmation button shown after dialogue ends */
+    /* Optional buttons shown after dialogue ends */
     const char* choiceText;
+    const char* choiceText2;
 
     const char* narratorText;
     const char* narratorVoicePath;
@@ -199,6 +201,7 @@ typedef struct {
  * - typing effect state
  * - fade and scene progression state
  * - narrator state
+ * - choice state
  */
 typedef struct {
     Texture2D bgTexture;
@@ -213,8 +216,10 @@ typedef struct {
     int totalLines;
     int currentLine;
 
-    /* Optional single confirmation button shown after dialogue */
+    /* Optional buttons shown after dialogue */
     const char* choiceText;
+    const char* choiceText2;
+    int selectedChoice;
 
     int charsDrawn;
     int narratorCharsDrawn;
@@ -238,6 +243,9 @@ typedef struct {
 
     bool firstDialogueStarted;
     bool narratorStarted;
+
+    float choiceWarningTimer;
+    const char* choiceWarningText;
 } StoryScene;
 
 /*
@@ -329,6 +337,9 @@ static inline void InitStoryScene(StoryScene* scene, const SceneData* data) {
 
     scene->totalLines = data->lineCount;
     scene->voiceVolume = 1.0f;
+    scene->choiceWarningTimer = 0.0f;
+    scene->choiceWarningText = "Press the button to continue";
+    scene->selectedChoice = 0;
 
     for (int i = 0; i < scene->totalLines; i++) {
         scene->lines[i].speakerName = data->lines[i].speakerName;
@@ -348,6 +359,7 @@ static inline void InitStoryScene(StoryScene* scene, const SceneData* data) {
     }
 
     scene->choiceText = data->choiceText;
+    scene->choiceText2 = data->choiceText2;
     scene->narratorText = data->narratorText;
     scene->endPromptText = data->endPromptText ? data->endPromptText : "PRESS ENTER TO CONTINUE";
 
@@ -372,7 +384,7 @@ static inline void InitStoryScene(StoryScene* scene, const SceneData* data) {
  * Main flow:
  * - fade in
  * - dialogue typing and progression
- * - optional single confirmation button
+ * - optional button(s)
  * - fade to black
  * - narrator text
  * - optional fade out
@@ -381,6 +393,13 @@ static inline void InitStoryScene(StoryScene* scene, const SceneData* data) {
 static inline void UpdateStoryScene(StoryScene* scene, Vector2 mousePos, bool mouseClicked, int screenWidth) {
     if (scene->bgScrollSpeed != 0.0f) {
         scene->bgScrollX += scene->bgScrollSpeed * GetFrameTime();
+    }
+
+    if (scene->choiceWarningTimer > 0.0f) {
+        scene->choiceWarningTimer -= GetFrameTime();
+        if (scene->choiceWarningTimer < 0.0f) {
+            scene->choiceWarningTimer = 0.0f;
+        }
     }
 
     if (scene->currentState == SCENE_STATE_FADE_IN) {
@@ -451,21 +470,34 @@ static inline void UpdateStoryScene(StoryScene* scene, Vector2 mousePos, bool mo
         }
     }
     else if (scene->currentState == SCENE_STATE_CHOICE) {
-        Rectangle choiceBox = {
-            screenWidth / 2.0f - 150.0f,
-            300.0f,
-            300.0f,
-            50.0f
-        };
+        bool hasSecondChoice = (scene->choiceText2 != NULL && scene->choiceText2[0] != '\0');
 
-        if (CheckCollisionPointRec(mousePos, choiceBox) && mouseClicked) {
+        Rectangle choiceBox1;
+        Rectangle choiceBox2 = { 0 };
+
+        if (hasSecondChoice) {
+            choiceBox1 = (Rectangle){ screenWidth / 2.0f - 270.0f, 300.0f, 240.0f, 50.0f };
+            choiceBox2 = (Rectangle){ screenWidth / 2.0f + 30.0f, 300.0f, 240.0f, 50.0f };
+        } else {
+            choiceBox1 = (Rectangle){ screenWidth / 2.0f - 150.0f, 300.0f, 300.0f, 50.0f };
+        }
+
+        if (CheckCollisionPointRec(mousePos, choiceBox1) && mouseClicked) {
             StoryScene_StopAllVoices(scene);
+            scene->selectedChoice = 1;
             scene->currentState = scene->doFadeOut ? SCENE_STATE_FADE_OUT : SCENE_STATE_FADE_TO_BLACK;
+        }
+        else if (hasSecondChoice && CheckCollisionPointRec(mousePos, choiceBox2) && mouseClicked) {
+            StoryScene_StopAllVoices(scene);
+            scene->selectedChoice = 2;
+            scene->currentState = scene->doFadeOut ? SCENE_STATE_FADE_OUT : SCENE_STATE_FADE_TO_BLACK;
+        }
+        else if (mouseClicked) {
+            scene->choiceWarningTimer = CHOICE_WARNING_DURATION;
         }
 
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            StoryScene_StopAllVoices(scene);
-            scene->currentState = scene->doFadeOut ? SCENE_STATE_FADE_OUT : SCENE_STATE_FADE_TO_BLACK;
+            scene->choiceWarningTimer = CHOICE_WARNING_DURATION;
         }
     }
     else if (scene->currentState == SCENE_STATE_FADE_TO_BLACK) {
@@ -525,7 +557,7 @@ static inline void UpdateStoryScene(StoryScene* scene, Vector2 mousePos, bool mo
  * Responsibilities:
  * - draw scrolling or static background
  * - draw dialogue UI and active portrait
- * - draw one centered confirmation button when applicable
+ * - draw one or two centered confirmation buttons when applicable
  * - draw fade overlay
  * - draw narrator text centered on screen
  */
@@ -603,21 +635,52 @@ static inline void DrawStoryScene(StoryScene* scene, int screenWidth, int screen
     }
 
     if (scene->currentState == SCENE_STATE_CHOICE && scene->choiceText) {
-        Rectangle choiceBox = {
-            screenWidth / 2.0f - 150.0f,
-            300.0f,
-            300.0f,
-            50.0f
-        };
+        bool hasSecondChoice = (scene->choiceText2 != NULL && scene->choiceText2[0] != '\0');
 
-        const int fontSize = 24;
-        const int textWidth = MeasureText(scene->choiceText, fontSize);
-        const int textX = (int)(choiceBox.x + (choiceBox.width - textWidth) * 0.5f);
-        const int textY = (int)(choiceBox.y + (choiceBox.height - fontSize) * 0.5f);
+        Rectangle choiceBox1;
+        Rectangle choiceBox2 = { 0 };
 
-        DrawRectangleRec(choiceBox, Fade(BLACK, 0.8f));
-        DrawRectangleLinesEx(choiceBox, 2.0f, LIGHTGRAY);
-        DrawText(scene->choiceText, textX, textY, fontSize, WHITE);
+        if (hasSecondChoice) {
+            choiceBox1 = (Rectangle){ screenWidth / 2.0f - 270.0f, 300.0f, 240.0f, 50.0f };
+            choiceBox2 = (Rectangle){ screenWidth / 2.0f + 30.0f, 300.0f, 240.0f, 50.0f };
+        } else {
+            choiceBox1 = (Rectangle){ screenWidth / 2.0f - 150.0f, 300.0f, 300.0f, 50.0f };
+        }
+
+        {
+            const int fontSize = 24;
+            const int textWidth = MeasureText(scene->choiceText, fontSize);
+            const int textX = (int)(choiceBox1.x + (choiceBox1.width - textWidth) * 0.5f);
+            const int textY = (int)(choiceBox1.y + (choiceBox1.height - fontSize) * 0.5f);
+
+            DrawRectangleRec(choiceBox1, Fade(BLACK, 0.8f));
+            DrawRectangleLinesEx(choiceBox1, 2.0f, LIGHTGRAY);
+            DrawText(scene->choiceText, textX, textY, fontSize, WHITE);
+        }
+
+        if (hasSecondChoice) {
+            const int fontSize = 24;
+            const int textWidth = MeasureText(scene->choiceText2, fontSize);
+            const int textX = (int)(choiceBox2.x + (choiceBox2.width - textWidth) * 0.5f);
+            const int textY = (int)(choiceBox2.y + (choiceBox2.height - fontSize) * 0.5f);
+
+            DrawRectangleRec(choiceBox2, Fade(BLACK, 0.8f));
+            DrawRectangleLinesEx(choiceBox2, 2.0f, LIGHTGRAY);
+            DrawText(scene->choiceText2, textX, textY, fontSize, WHITE);
+        }
+
+        if (scene->choiceWarningTimer > 0.0f) {
+            int warningFontSize = 20;
+            int warningWidth = MeasureText(scene->choiceWarningText, warningFontSize);
+
+            DrawText(
+                scene->choiceWarningText,
+                (screenWidth / 2) - (warningWidth / 2),
+                255,
+                warningFontSize,
+                YELLOW
+            );
+        }
     }
 
     if (scene->fadeAlpha > 0.0f) {

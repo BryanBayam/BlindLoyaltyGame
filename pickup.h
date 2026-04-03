@@ -29,7 +29,7 @@ typedef struct Pickup {
 
 void SpawnPickups(const Tilemap *map, Pickup hearts[], int heartCount, Texture2D *heartTexture, Pickup speeds[], int speedCount, Texture2D *speedTexture);
 void DrawPickup(const Pickup *pickup);
-void CheckPickupCollisions(Player *player, Pickup hearts[], Pickup speeds[]);
+void CheckPickupCollisions(Player *player, Pickup hearts[], Pickup speeds[], bool *pickedHeart, bool *pickedSpeed);
 
 #ifdef PICKUP_IMPLEMENTATION
 
@@ -147,13 +147,17 @@ void SpawnPickups(const Tilemap *map, Pickup hearts[], int heartCount, Texture2D
     }
 }
 
-void CheckPickupCollisions(Player *player, Pickup hearts[], Pickup speeds[]) {
+void CheckPickupCollisions(Player *player, Pickup hearts[], Pickup speeds[], bool *pickedHeart, bool *pickedSpeed) {
     Rectangle pBox = GetPlayerHitbox(player->pos);
+
+    if (pickedHeart) *pickedHeart = false;
+    if (pickedSpeed) *pickedSpeed = false;
 
     for (int i = 0; i < HEART_COUNT; i++) {
         if (hearts[i].active && CheckCollisionRecs(pBox, hearts[i].hitbox)) {
             HealPlayer(player, 25.0f);
             hearts[i].active = false;
+            if (pickedHeart) *pickedHeart = true;
         }
     }
 
@@ -162,6 +166,7 @@ void CheckPickupCollisions(Player *player, Pickup hearts[], Pickup speeds[]) {
             player->speedMultiplier = 1.25f;
             AddPlayerEnergy(player, 20.0f);
             speeds[i].active = false;
+            if (pickedSpeed) *pickedSpeed = true;
         }
     }
 }

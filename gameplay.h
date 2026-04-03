@@ -51,8 +51,7 @@ typedef struct {
 void DrawDeathOverlay(int vWidth, int vHeight);
 void DrawWinOverlay(const GameplayState *state, int vWidth, int vHeight);
 void DrawInstructionsOverlay(const GameplayState *state, int vWidth, int vHeight);
-void ResetGameplay(GameplayState *state);
-void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound winSfx, Music inGameMusic, bool *requestPause, bool *requestNextScene, bool mouseClicked);
+void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound winSfx, Sound heartPickSfx, Sound speedSfx, Music inGameMusic, bool *requestPause, bool *requestNextScene, bool mouseClicked);
 void DrawGameplay(GameplayState *state, int vWidth, int vHeight);
 
 #ifdef GAMEPLAY_IMPLEMENTATION
@@ -135,7 +134,7 @@ void DrawInstructionsOverlay(const GameplayState *state, int vWidth, int vHeight
     y += 45;
     DrawText("- Press keys you bound to Move.", x, y, 26, RAYWHITE);
     y += 45;
-    DrawText("- Press bound Run key to Run.", x, y, 26, RAYWHITE);
+    DrawText("- Press Shift key to Run.", x, y, 26, RAYWHITE);
     y += 45;
     DrawText(TextFormat("- Avoid the %s.", GameplayAvoidEnemyText(state)), x, y, 26, RED);
     y += 80;
@@ -191,7 +190,7 @@ void ResetGameplay(GameplayState *state) {
     state->winSfxPlayed = false;
 }
 
-void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound winSfx, Music inGameMusic, bool *requestPause, bool *requestNextScene, bool mouseClicked) {
+void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound winSfx, Sound heartPickSfx, Sound speedSfx, Music inGameMusic, bool *requestPause, bool *requestNextScene, bool mouseClicked) {
     bool gameplayPaused = state->showInstructions || state->player.isDead || state->gameWon;
 
     if (state->showInstructions && (GetKeyPressed() != 0 || mouseClicked)) state->showInstructions = false;
@@ -206,7 +205,12 @@ void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound wi
 
         UpdateEnemySpawns(&state->enemySpawner, dt, state->regularBandits, MAX_REGULAR_ENEMIES, &state->bossBandit, &state->map, state->player.pos);
         UpdateKeyLogic(&state->key, dt, &state->map, state->player.pos, &state->gameWon);
-        CheckPickupCollisions(&state->player, state->hearts, state->speeds);
+        bool pickedHeart = false;
+        bool pickedSpeed = false;
+        CheckPickupCollisions(&state->player, state->hearts, state->speeds, &pickedHeart, &pickedSpeed);
+
+        if (pickedHeart) PlaySound(heartPickSfx);
+        if (pickedSpeed) PlaySound(speedSfx);
 
         for (int i = 0; i < MAX_REGULAR_ENEMIES; i++) {
             if (GameplayUsesSecurityTheme(state)) {

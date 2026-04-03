@@ -1,1 +1,1 @@
-Narrator|Your name is Reuben. You grew up in a city that was constantly afraid.\n News reports spoke about threats, attacks, and instability.|audio/Voice/Scene 2/Narrator.mp3
+Narrator|Your name is Reuben. You grew up in a city that was constantly afraid.\nNews reports spoke about threats, attacks, and instability.|audio/Voice/Scene 2/Narrator.mp3

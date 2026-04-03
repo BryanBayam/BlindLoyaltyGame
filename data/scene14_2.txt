@@ -1,0 +1,8 @@
+President|Are you Reuben, the member of our Special Force? |audio/Voice/Scene 14_2/President part 1.mp3
+Reuben|Yes sir... |audio/Voice/Scene 14_2/Reuben part 1.mp3
+President|Brilliant! You execute every task perfectly.\nNow I'll give you one final task! |audio/Voice/Scene 14_2/President part 2.mp3
+Reuben|What is that sir? |audio/Voice/Scene 14_2/Reuben part 2.mp3
+President|You need to attack the Ashat Tribe tomorrow before the sun rises.\nThey want to rebel to the government. So we need to attack them\nfirst before they're coming. |audio/Voice/Scene 14_2/President part 3.mp3
+President|I will also give you the authority to lead the Special Force\nsoldiers to accompany you in this mission. |audio/Voice/Scene 14_2/President part 4.mp3
+Reuben|Okay sir |audio/Voice/Scene 14_2/Reuben part 3.mp3
+President|Don't disappoint me Reuben... |audio/Voice/Scene 14_2/President part 5.mp3

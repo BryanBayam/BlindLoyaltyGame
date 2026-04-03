@@ -1,0 +1,6 @@
+Reuben|Finally, I got the document. I need to send it \nto the commander right away. |audio/Voice/Scene 12/Reuben part 1.mp3
+Oasis CEO|Wait... I know you are a good person. Trust me... \nPlease don't send it to the government. |audio/Voice/Scene 12/Oasis CEO part 1.mp3
+
+Reuben|But why? |audio/Voice/Scene 12/Reuben part 2.mp3
+
+Oasis CEO|You can open the document and judge it by yourself... |audio/Voice/Scene 12/Oasis CEO part 2.mp3
