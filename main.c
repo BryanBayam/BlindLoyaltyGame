@@ -9,6 +9,9 @@
 #include "character.h"
 #include "story_scene.h"
 
+// INCLUDE TEKKEN FIGHTER ENGINE HEADERS
+#include "tekkenplayer.h"
+
 #define ENEMY_IMPLEMENTATION
 #include "enemy.h"
 
@@ -68,7 +71,8 @@ typedef enum {
     SCREEN_SCENE19_2_1,
     SCREEN_SCENE20_2_1,
     SCREEN_SCENE21_2_1,
-    SCREEN_SCENE18_2_2
+    SCREEN_SCENE18_2_2,
+    SCREEN_TEKKEN_FIGHT
 } GameScreen;
 
 #define DEFAULT_PORTRAIT_SCALE 0.28f
@@ -94,279 +98,303 @@ static const GameplayConfig GAMEPLAY2_CONFIG = {
     .bossSpawnText = "Oasis Media CEO arrives in 7 seconds..."
 };
 
-SceneData scene1_data = {
-    .bgPath = "images/Background/Scene/Scene1.png",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = false,
-    .doFadeOut = false,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png"),
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png")
-    },
-    .choiceText = "Yes Commander!",
-    .narratorText = "Before the world called you a hero,\nyou were just a child who believed in order.",
-    .narratorVoicePath = "audio/Voice/Scene 1/Narrator.mp3",
-};
+// --- SCENE DATA DEFINITIONS ---
+SceneData scene1_data = { .bgPath = "images/Background/Scene/Scene1.png", .bgScrollSpeed = 0.0f, .doFadeIn = false, .doFadeOut = false, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png"), PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png") }, .choiceText = "Yes Commander!", .narratorText = "Before the world called you a hero,\nyou were just a child who believed in order.", .narratorVoicePath = "audio/Voice/Scene 1/Narrator.mp3", };
+SceneData scene2_data = { .bgPath = "images/Background/Scene/Scene2.jpg", .bgScrollSpeed = -15.0f, .doFadeIn = true, .doFadeOut = true, };
+SceneData scene3_data = { .bgPath = "images/Background/Scene/Scene3.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = false, .doFadeOut = false, .narratorText = "And that idea stayed with you...", .narratorVoicePath = "audio/Voice/Scene 3/Narrator part 2.mp3", };
+SceneData scene4_data = { .bgPath = "images/Background/Scene/Scene4.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
+SceneData scene5_data = { .bgPath = "images/Background/Scene/Scene5.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
+SceneData scene6_data = { .bgPath = "images/Background/Scene/Scene6.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .narratorText = "At least, that's what you were told.", .narratorVoicePath = "audio/Voice/Scene 6/Narrator part 2.mp3" };
+SceneData scene7_data = { .bgPath = "images/Background/Scene/Scene7.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Boss Bandit", "images/Character/Boss Bandit/BossBanditChat.png") }, };
+SceneData scene8_data = { .bgPath = "images/Background/Scene/Scene8.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 1, .portraits = { PORTRAIT_DEFAULT("Soldier", "images/Character/Soldier/SoldierChat.png") } };
+SceneData scene9_data = { .bgPath = "images/Background/Scene/Scene7.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png") } };
+SceneData scene10_data = { .bgPath = "images/Background/Scene/Scene10.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 1, .portraits = { PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png") }, .narratorText = "(Next day)\n*Loud knocking sound*", };
+SceneData scene11_data = { .bgPath = "images/Background/Scene/Scene11.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png") }, .choiceText = "I'll try my best!", .endPromptText = "PRESS ENTER TO CONTINUE" };
+SceneData scene12_data = { .bgPath = "images/Background/Scene/Scene12.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Oasis CEO", "images/Character/Oasis Media CEO/OasisCEOChat.png") }, .choiceText = "Open document", .choiceText2 = "Close document", .endPromptText = "CLICK A BUTTON TO CONTINUE" };
+SceneData scene13_1_data = { .bgPath = "images/Background/Scene/Scene13_1.jpg" };
+SceneData scene14_1_data = { .bgPath = "images/Background/Scene/Scene14_1.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Oasis CEO", "images/Character/Oasis Media CEO/OasisCEOChat.png") } };
+SceneData scene13_2_data = { .bgPath = "images/Background/Scene/Scene1.png", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png") } };
+SceneData scene14_2_data = { .bgPath = "images/Background/Scene/Scene14_2.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("President", "images/Character/President/PresidentChat.png") } };
+SceneData scene15_2_data = { .bgPath = "images/Background/Scene/Scene15_2.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = false, };
+SceneData scene16_2_data = { .bgPath = "images/Background/Scene/Scene15_2.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = false, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Ashat Leader", "images/Character/Ashat Leader/AshatLeaderChat.png") } };
+SceneData scene17_2_data = { .bgPath = "images/Background/Scene/Scene17_2.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Ashat Leader", "images/Character/Ashat Leader/AshatLeaderChat.png") }, .choiceText = "Trust him", .choiceText2 = "Capture him" };
+SceneData scene18_2_1_data = { .bgPath = "images/Background/Scene/Scene18_2_1.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
+SceneData scene19_2_1_data = { .bgPath = "images/Background/Scene/Scene1.png", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"), PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png") } };
+SceneData scene20_2_1_data = { .bgPath = "images/Background/Scene/Scene20_2_1.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
+SceneData scene21_2_1_data = { .bgPath = "images/Background/Scene/Scene21_2_1.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
+SceneData scene18_2_2_data = { .bgPath = "images/Background/Scene/Scene18_2_2.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
 
-SceneData scene2_data = {
-    .bgPath = "images/Background/Scene/Scene2.jpg",
-    .bgScrollSpeed = -15.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-};
 
-SceneData scene3_data = {
-    .bgPath = "images/Background/Scene/Scene3.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = false,
-    .doFadeOut = false,
-    .narratorText = "And that idea stayed with you...",
-    .narratorVoicePath = "audio/Voice/Scene 3/Narrator part 2.mp3",
-};
+// --- TEKKEN MINIGAME ENGINE FUNCTIONS ---
+const float GRAVITY = 1200.0f;
+const float JUMP_FORCE = -550.0f;
+const float GROUND_Y = 680.0f; 
 
-SceneData scene4_data = {
-    .bgPath = "images/Background/Scene/Scene4.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-};
+void InitCharacter(Character* c, Vector2 startPos, bool isPlayer) {
+    c->position = startPos;
+    c->velocity = (Vector2){ 0, 0 };
+    c->state = STATE_IDLE;
+    c->facingRight = isPlayer;
+    c->isGrounded = false;
+    c->health = 100;
+    c->aiTimer = 0.0f;
+    
+    // Load Textures from different folders depending on if it's the player or enemy
+    const char* basePath = isPlayer ? "images/Character/Fighter" : "images/Character/Samurai";
 
-SceneData scene5_data = {
-    .bgPath = "images/Background/Scene/Scene5.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-};
+    c->textures[STATE_IDLE] = LoadTexture(TextFormat("%s/Idle.png", basePath));
+    c->textures[STATE_WALK] = LoadTexture(TextFormat("%s/Walk.png", basePath));
+    c->textures[STATE_RUN] = LoadTexture(TextFormat("%s/Run.png", basePath));
+    c->textures[STATE_JUMP] = LoadTexture(TextFormat("%s/Jump.png", basePath));
+    c->textures[STATE_SHIELD] = LoadTexture(TextFormat("%s/Shield.png", basePath));
+    c->textures[STATE_ATTACK_1] = LoadTexture(TextFormat("%s/Attack_1.png", basePath));
+    c->textures[STATE_ATTACK_2] = LoadTexture(TextFormat("%s/Attack_2.png", basePath));
+    c->textures[STATE_ATTACK_3] = LoadTexture(TextFormat("%s/Attack_3.png", basePath));
+    c->textures[STATE_HURT] = LoadTexture(TextFormat("%s/Hurt.png", basePath));
+    c->textures[STATE_DEAD] = LoadTexture(TextFormat("%s/Dead.png", basePath));
+    
+    // Frame Counts
+    c->frameCounts[STATE_IDLE] = 6;
+    c->frameCounts[STATE_WALK] = 8;
+    c->frameCounts[STATE_RUN] = 8;
+    c->frameCounts[STATE_JUMP] = isPlayer ? 10 : 12;; 
+    c->frameCounts[STATE_SHIELD] = 2;
+    c->frameCounts[STATE_ATTACK_1] = isPlayer ? 4 : 6; 
+    c->frameCounts[STATE_ATTACK_2] = isPlayer ? 3 : 4; 
+    c->frameCounts[STATE_ATTACK_3] = isPlayer ? 4 : 3;
+    c->frameCounts[STATE_HURT] = isPlayer ? 3 : 2;
+    c->frameCounts[STATE_DEAD] = 3;
+    
+    c->currentFrame = 0;
+    c->frameTimer = 0.0f;
+    c->frameDuration = 0.1f;
+    c->hitBox = (Rectangle){ c->position.x, c->position.y, 50, 100 }; 
+}
 
-SceneData scene6_data = {
-    .bgPath = "images/Background/Scene/Scene6.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .narratorText = "At least, that's what you were told.",
-    .narratorVoicePath = "audio/Voice/Scene 6/Narrator part 2.mp3"
-};
+void UpdateCharacter(Character* c, Character* opponent, float dt, bool isPlayer) {
+    if (c->state != STATE_DEAD) {
+        c->velocity.y += GRAVITY * dt;
+        c->position.y += c->velocity.y * dt;
 
-SceneData scene7_data = {
-    .bgPath = "images/Background/Scene/Scene7.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Boss Bandit", "images/Character/Boss Bandit/BossBanditChat.png")
-    },
-};
-
-SceneData scene8_data = {
-    .bgPath = "images/Background/Scene/Scene8.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 1,
-    .portraits = {
-        PORTRAIT_DEFAULT("Soldier", "images/Character/Soldier/SoldierChat.png")
+        if (c->position.y >= GROUND_Y) {
+            c->position.y = GROUND_Y;
+            c->velocity.y = 0.0f;
+            c->isGrounded = true;
+            if (c->state == STATE_JUMP) c->state = STATE_IDLE;
+        } else {
+            c->isGrounded = false;
+        }
     }
-};
 
-SceneData scene9_data = {
-    .bgPath = "images/Background/Scene/Scene7.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png")
+    // Player Input Logic
+    if (isPlayer && c->state != STATE_DEAD && c->state != STATE_HURT && 
+        c->state != STATE_ATTACK_1 && c->state != STATE_ATTACK_2 && c->state != STATE_ATTACK_3) 
+    {
+        bool isMoving = false;
+        float moveSpeed = IsKeyDown(KEY_LEFT_SHIFT) ? 500.0f : 250.0f; // Shift to Run
+        CharState moveState = IsKeyDown(KEY_LEFT_SHIFT) ? STATE_RUN : STATE_WALK;
+
+        // A and D to move
+        if (IsKeyDown(KEY_D)) {
+            c->position.x += moveSpeed * dt;
+            if (c->isGrounded) c->state = moveState;
+            c->facingRight = true;
+            isMoving = true;
+        } else if (IsKeyDown(KEY_A)) {
+            c->position.x -= moveSpeed * dt;
+            if (c->isGrounded) c->state = moveState;
+            c->facingRight = false;
+            isMoving = true;
+        } 
+        
+        // S to Shield
+        if (IsKeyDown(KEY_S) && c->isGrounded && !isMoving) {
+            c->state = STATE_SHIELD;
+        } else if (!isMoving && c->isGrounded && c->state != STATE_SHIELD) {
+            c->state = STATE_IDLE;
+        }
+
+        // SPACE to Jump
+        if (IsKeyPressed(KEY_SPACE) && c->isGrounded) {
+            c->velocity.y = JUMP_FORCE;
+            c->state = STATE_JUMP;
+            c->currentFrame = 0;
+        }
+
+        // Left Click, Right Click, E to Attack
+        if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsKeyPressed(KEY_E)) && c->isGrounded) {
+            int damage = 10;
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                c->state = STATE_ATTACK_1;
+                damage = 10;
+            } else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+                c->state = STATE_ATTACK_2;
+                damage = 15;
+            } else if (IsKeyPressed(KEY_E)) {
+                c->state = STATE_ATTACK_3;
+                damage = 25; // Heavy Attack
+            }
+            c->currentFrame = 0; 
+            
+            // Hit detection against Enemy
+            if (fabs(c->position.x - opponent->position.x) < 140.0f && opponent->state != STATE_DEAD) {
+                
+                // SHIELD FIX: Enemy takes 0 damage if shielding
+                if (opponent->state == STATE_SHIELD) {
+                    damage = 0; 
+                } else {
+                    opponent->state = STATE_HURT;
+                    opponent->currentFrame = 0;
+                }
+                
+                opponent->health -= damage;
+                if (opponent->health <= 0) {
+                    opponent->health = 0;
+                    opponent->state = STATE_DEAD;
+                    opponent->currentFrame = 0;
+                }
+            }
+        }
+    } 
+    // ENEMY AI LOGIC (CHASING & RANDOM ATTACKS)
+    else if (!isPlayer && c->state != STATE_DEAD && c->state != STATE_HURT && 
+             c->state != STATE_ATTACK_1 && c->state != STATE_ATTACK_2 && c->state != STATE_ATTACK_3) 
+    {
+        c->facingRight = (opponent->position.x > c->position.x);
+        float distanceToPlayer = fabs(c->position.x - opponent->position.x);
+
+        c->aiTimer -= dt;
+
+        // If far away, chase the player
+        if (distanceToPlayer > 120.0f) {
+            c->position.x += (c->facingRight ? 220.0f : -220.0f) * dt;
+            if (c->isGrounded) c->state = STATE_WALK;
+        } 
+        // If close enough, stop walking and randomly attack
+        else {
+            if (c->isGrounded && c->state != STATE_IDLE) c->state = STATE_IDLE;
+
+            if (c->aiTimer <= 0.0f && opponent->state != STATE_DEAD) {
+                int randAttack = GetRandomValue(1, 3);
+                int damage = 0;
+
+                if (randAttack == 1) { c->state = STATE_ATTACK_1; damage = 10; }
+                else if (randAttack == 2) { c->state = STATE_ATTACK_2; damage = 15; }
+                else { c->state = STATE_ATTACK_3; damage = 25; }
+
+                c->currentFrame = 0;
+                c->aiTimer = GetRandomValue(10, 25) / 10.0f; 
+
+                // SHIELD FIX: Player takes 0 damage if shielding
+                if (opponent->state == STATE_SHIELD) {
+                    damage = 0; 
+                } else {
+                    opponent->state = STATE_HURT;
+                    opponent->currentFrame = 0;
+                }
+                
+                opponent->health -= damage;
+                if (opponent->health <= 0) {
+                    opponent->health = 0;
+                    opponent->state = STATE_DEAD;
+                    opponent->currentFrame = 0;
+                }
+            }
+        }
     }
-};
 
-SceneData scene10_data = {
-    .bgPath = "images/Background/Scene/Scene10.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 1,
-    .portraits = {
-        PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png")
-    },
-    .narratorText = "(Next day)\n*Loud knocking sound*",
-};
+    // --- SCREEN BOUNDARY FIX ---
+    // Prevent characters from walking off the 1280 pixel wide screen
+    if (c->position.x < 50.0f) c->position.x = 50.0f;
+    if (c->position.x > 1230.0f) c->position.x = 1230.0f;
+    // ---------------------------
 
-SceneData scene11_data = {
-    .bgPath = "images/Background/Scene/Scene11.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png")
-    },
-    .choiceText = "I'll try my best!",
-    .endPromptText = "PRESS ENTER TO CONTINUE"
-};
+    // Animation Loop
+    c->frameTimer += dt;
+    if (c->frameTimer >= c->frameDuration) {
+        c->frameTimer = 0.0f;
+        c->currentFrame++;
 
-SceneData scene12_data = {
-    .bgPath = "images/Background/Scene/Scene12.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Oasis CEO", "images/Character/Oasis Media CEO/OasisCEOChat.png")
-    },
-    .choiceText = "Open document",
-    .choiceText2 = "Close document",
-    .endPromptText = "CLICK A BUTTON TO CONTINUE"
-};
-
-SceneData scene13_1_data = {
-    .bgPath = "images/Background/Scene/Scene13_1.jpg"
-};
-
-SceneData scene14_1_data = {
-    .bgPath = "images/Background/Scene/Scene14_1.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Oasis CEO", "images/Character/Oasis Media CEO/OasisCEOChat.png")
+        if (c->currentFrame >= c->frameCounts[c->state]) {
+            if (c->state == STATE_ATTACK_1 || c->state == STATE_ATTACK_2 || c->state == STATE_ATTACK_3 || c->state == STATE_HURT) {
+                if (c->health <= 0) {
+                    c->state = STATE_DEAD;
+                    c->currentFrame = 0;
+                } else {
+                    c->state = STATE_IDLE; 
+                }
+            } else if (c->state == STATE_JUMP) {
+                c->currentFrame = c->frameCounts[STATE_JUMP] - 1; 
+            } else if (c->state == STATE_DEAD) {
+                c->currentFrame = c->frameCounts[STATE_DEAD] - 1; 
+            } else if (c->state == STATE_SHIELD) {
+                c->currentFrame = c->frameCounts[STATE_SHIELD] - 1; 
+            } else {
+                c->currentFrame = 0; 
+            }
+        }
     }
-};
+}
 
-SceneData scene13_2_data = {
-    .bgPath = "images/Background/Scene/Scene1.png",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png")
-    }
-};
+void DrawCharacter(Character* c) {
+    Texture2D tex = c->textures[c->state];
+    if (tex.id == 0) return; 
 
-SceneData scene14_2_data = {
-    .bgPath = "images/Background/Scene/Scene14_2.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("President", "images/Character/President/PresidentChat.png")
-    }
-};
+    int numFrames = c->frameCounts[c->state];
+    float frameWidth = (float)tex.width / numFrames;
+    float frameHeight = (float)tex.height;
 
-SceneData scene15_2_data = {
-    .bgPath = "images/Background/Scene/Scene15_2.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = false,
-};
+    Rectangle sourceRec = { 
+        (float)c->currentFrame * frameWidth, 0.0f, 
+        c->facingRight ? frameWidth : -frameWidth, frameHeight 
+    };
 
-SceneData scene16_2_data = {
-    .bgPath = "images/Background/Scene/Scene15_2.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = false,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Ashat Leader", "images/Character/Ashat Leader/AshatLeaderChat.png")
-    }
-};
+    Rectangle destRec = { 
+        c->position.x, c->position.y, 
+        frameWidth * 3.5f, frameHeight * 3.5f 
+    };
 
-SceneData scene17_2_data = {
-    .bgPath = "images/Background/Scene/Scene17_2.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Ashat Leader", "images/Character/Ashat Leader/AshatLeaderChat.png")
-    },
-    .choiceText = "Trust him",
-    .choiceText2 = "Capture him"
-};
+    Vector2 origin = { (frameWidth * 3.5f) / 2.0f, frameHeight * 3.5f };
+    DrawTexturePro(tex, sourceRec, destRec, origin, 0.0f, WHITE);
+}
 
-SceneData scene18_2_1_data = {
-    .bgPath = "images/Background/Scene/Scene18_2_1.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true, //?
-};
+void DrawGameUI(int playerHealth, int enemyHealth, int timeRemaining, int screenWidth) {
+    int barWidth = (screenWidth / 2) - 80;
+    int barHeight = 40;
+    int padding = 30;
 
-SceneData scene19_2_1_data = {
-    .bgPath = "images/Background/Scene/Scene1.png",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-    .portraitCount = 2,
-    .portraits = {
-        PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png"),
-        PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png")
-    }
-};
+    DrawRectangle((screenWidth / 2) - 30, padding, 60, 50, BLACK);
+    DrawRectangleLines((screenWidth / 2) - 30, padding, 60, 50, WHITE);
+    
+    char timeText[5];
+    sprintf(timeText, "%02d", timeRemaining);
+    DrawText(timeText, (screenWidth / 2) - 15, padding + 15, 20, WHITE);
 
-SceneData scene20_2_1_data = {
-    .bgPath = "images/Background/Scene/Scene20_2_1.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-};
+    float p1HealthPct = (float)playerHealth / 100.0f;
+    DrawRectangle(padding, padding + 5, barWidth, barHeight, RED); 
+    DrawRectangle(padding + (barWidth * (1.0f - p1HealthPct)), padding + 5, barWidth * p1HealthPct, barHeight, BLUE);
+    DrawRectangleLines(padding, padding + 5, barWidth, barHeight, WHITE);
 
-SceneData scene21_2_1_data = {
-    .bgPath = "images/Background/Scene/Scene21_2_1.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-};
-
-SceneData scene18_2_2_data = {
-    .bgPath = "images/Background/Scene/Scene18_2_2.jpg",
-    .bgScrollSpeed = 0.0f,
-    .doFadeIn = true,
-    .doFadeOut = true,
-};
+    float p2HealthPct = (float)enemyHealth / 100.0f;
+    DrawRectangle(screenWidth / 2 + 50, padding + 5, barWidth, barHeight, RED); 
+    DrawRectangle(screenWidth / 2 + 50, padding + 5, barWidth * p2HealthPct, barHeight, BLUE);
+    DrawRectangleLines(screenWidth / 2 + 50, padding + 5, barWidth, barHeight, WHITE);
+}
+// ------------------------------------------
 
 static bool IsGameplayScreen(GameScreen screen) {
-    return screen == SCREEN_GAMEPLAY || screen == SCREEN_GAMEPLAY2;
+    return screen == SCREEN_GAMEPLAY || screen == SCREEN_GAMEPLAY2 || screen == SCREEN_TEKKEN_FIGHT;
 }
 
 static bool IsStorySceneScreen(GameScreen screen) {
     switch (screen) {
-        case SCREEN_SCENE1:
-        case SCREEN_SCENE2:
-        case SCREEN_SCENE3:
-        case SCREEN_SCENE4:
-        case SCREEN_SCENE5:
-        case SCREEN_SCENE6:
-        case SCREEN_SCENE7:
-        case SCREEN_SCENE8:
-        case SCREEN_SCENE9:
-        case SCREEN_SCENE10:
-        case SCREEN_SCENE11:
-        case SCREEN_SCENE12:
-        case SCREEN_SCENE13_1:
-        case SCREEN_SCENE14_1:
-        case SCREEN_SCENE13_2:
-        case SCREEN_SCENE14_2:
-        case SCREEN_SCENE15_2:
-        case SCREEN_SCENE16_2:
-        case SCREEN_SCENE17_2:
-        case SCREEN_SCENE18_2_1:
-        case SCREEN_SCENE19_2_1:
-        case SCREEN_SCENE20_2_1:
-        case SCREEN_SCENE21_2_1:
-        case SCREEN_SCENE18_2_2:
+        case SCREEN_SCENE1: case SCREEN_SCENE2: case SCREEN_SCENE3: case SCREEN_SCENE4:
+        case SCREEN_SCENE5: case SCREEN_SCENE6: case SCREEN_SCENE7: case SCREEN_SCENE8:
+        case SCREEN_SCENE9: case SCREEN_SCENE10: case SCREEN_SCENE11: case SCREEN_SCENE12:
+        case SCREEN_SCENE13_1: case SCREEN_SCENE14_1: case SCREEN_SCENE13_2: case SCREEN_SCENE14_2:
+        case SCREEN_SCENE15_2: case SCREEN_SCENE16_2: case SCREEN_SCENE17_2: case SCREEN_SCENE18_2_1:
+        case SCREEN_SCENE19_2_1: case SCREEN_SCENE20_2_1: case SCREEN_SCENE21_2_1: case SCREEN_SCENE18_2_2:
             return true;
         default:
             return false;
@@ -448,31 +476,25 @@ int main(void) {
 
     GameplayState gameState1 = { 0 };
     GameplayState gameState2 = { 0 };
+    
+    // --- TEKKEN MINIGAME VARIABLES ---
+    Character playerTekken;
+    Character enemyTekken;
+    float tekkenTimer = 99.0f;
+    float tekkenEndDelay = 0.0f;
+    bool showTekkenControls = false;
+    Tilemap tekkenMap = { 0 };
+    Texture2D tekkenBg = { 0 };
+    // ---------------------------------
 
-    StoryScene scene1 = { 0 };
-    StoryScene scene2 = { 0 };
-    StoryScene scene3 = { 0 };
-    StoryScene scene4 = { 0 };
-    StoryScene scene5 = { 0 };
-    StoryScene scene6 = { 0 };
-    StoryScene scene7 = { 0 };
-    StoryScene scene8 = { 0 };
-    StoryScene scene9 = { 0 };
-    StoryScene scene10 = { 0 };
-    StoryScene scene11 = { 0 };
-    StoryScene scene12 = { 0 };
-    StoryScene scene13_1 = { 0 };
-    StoryScene scene14_1 = { 0 };
-    StoryScene scene13_2 = { 0 };
-    StoryScene scene14_2 = { 0 };
-    StoryScene scene15_2 = { 0 };
-    StoryScene scene16_2 = { 0 };
-    StoryScene scene17_2 = { 0 };
-    StoryScene scene18_2_1 = { 0 };
-    StoryScene scene19_2_1 = { 0 };
-    StoryScene scene20_2_1 = { 0 };
-    StoryScene scene21_2_1 = { 0 };
-    StoryScene scene18_2_2 = { 0 };
+    StoryScene scene1 = { 0 }; StoryScene scene2 = { 0 }; StoryScene scene3 = { 0 };
+    StoryScene scene4 = { 0 }; StoryScene scene5 = { 0 }; StoryScene scene6 = { 0 };
+    StoryScene scene7 = { 0 }; StoryScene scene8 = { 0 }; StoryScene scene9 = { 0 };
+    StoryScene scene10 = { 0 }; StoryScene scene11 = { 0 }; StoryScene scene12 = { 0 };
+    StoryScene scene13_1 = { 0 }; StoryScene scene14_1 = { 0 }; StoryScene scene13_2 = { 0 };
+    StoryScene scene14_2 = { 0 }; StoryScene scene15_2 = { 0 }; StoryScene scene16_2 = { 0 };
+    StoryScene scene17_2 = { 0 }; StoryScene scene18_2_1 = { 0 }; StoryScene scene19_2_1 = { 0 };
+    StoryScene scene20_2_1 = { 0 }; StoryScene scene21_2_1 = { 0 }; StoryScene scene18_2_2 = { 0 };
 
     RenderTexture2D target = LoadRenderTexture(vWidth, vHeight);
 
@@ -520,7 +542,7 @@ int main(void) {
             StopSound(battleSfx);
             StopSound(clappingSfx);
 
-            if (currentScreen == SCREEN_SCENE15_2 || currentScreen == SCREEN_SCENE18_2_1) {
+            if (currentScreen == SCREEN_SCENE15_2 || currentScreen == SCREEN_SCENE18_2_1 || currentScreen == SCREEN_TEKKEN_FIGHT) {
                 PlaySound(battleSfx);
             }
             else if (currentScreen == SCREEN_SCENE21_2_1 || currentScreen == SCREEN_SCENE18_2_2) {
@@ -562,6 +584,9 @@ int main(void) {
                     menu.background = LoadTexture("images/Background/TitleBackground.PNG");
                     menu.settingsBg = LoadTexture("images/GUI/Setting.png");
                     menu.saveBg = LoadTexture("images/GUI/Gamesave.png");
+                    
+                    tekkenBg = LoadTexture("images/Background/Arena/arena1/arena1.png"); 
+                    
                     menuMusic = LoadMusicStream("music/MainMenu.ogg");
                     storyMusic = LoadMusicStream("music/Story.ogg");
                     inGameMusic = LoadMusicStream("music/ingame.ogg");
@@ -591,6 +616,12 @@ int main(void) {
 
                     if (!LoadTilemap(&gameState1.map, "maps/map1/map1.json")) goto cleanup;
                     if (!LoadTilemap(&gameState2.map, "maps/map2/map2.json")) goto cleanup;
+                    
+                    LoadTilemap(&tekkenMap, "images/Background/Arena/arena1/arena1.json"); 
+                    
+                    // PRELOAD TEKKEN CHARACTERS
+                    InitCharacter(&playerTekken, (Vector2){ 250, 100 }, true);
+                    InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, false);
 
                     loadProgress = 0.16f;
                     loadStep++;
@@ -603,149 +634,30 @@ int main(void) {
                     loadStep++;
                     break;
 
-                case 3:
-                    LoadSceneDialogue("data/scene1.txt", &scene1_data);
-                    InitStoryScene(&scene1, &scene1_data);
-                    loadProgress = 0.30f;
-                    loadStep++;
-                    break;
-                case 4:
-                    LoadSceneDialogue("data/scene2.txt", &scene2_data);
-                    InitStoryScene(&scene2, &scene2_data);
-                    loadProgress = 0.34f;
-                    loadStep++;
-                    break;
-                case 5:
-                    LoadSceneDialogue("data/scene3.txt", &scene3_data);
-                    InitStoryScene(&scene3, &scene3_data);
-                    loadProgress = 0.38f;
-                    loadStep++;
-                    break;
-                case 6:
-                    LoadSceneDialogue("data/scene4.txt", &scene4_data);
-                    InitStoryScene(&scene4, &scene4_data);
-                    loadProgress = 0.42f;
-                    loadStep++;
-                    break;
-                case 7:
-                    LoadSceneDialogue("data/scene5.txt", &scene5_data);
-                    InitStoryScene(&scene5, &scene5_data);
-                    loadProgress = 0.46f;
-                    loadStep++;
-                    break;
-                case 8:
-                    LoadSceneDialogue("data/scene6.txt", &scene6_data);
-                    InitStoryScene(&scene6, &scene6_data);
-                    loadProgress = 0.50f;
-                    loadStep++;
-                    break;
-                case 9:
-                    LoadSceneDialogue("data/scene7.txt", &scene7_data);
-                    InitStoryScene(&scene7, &scene7_data);
-                    loadProgress = 0.54f;
-                    loadStep++;
-                    break;
-                case 10:
-                    LoadSceneDialogue("data/scene8.txt", &scene8_data);
-                    InitStoryScene(&scene8, &scene8_data);
-                    loadProgress = 0.58f;
-                    loadStep++;
-                    break;
-                case 11:
-                    LoadSceneDialogue("data/scene9.txt", &scene9_data);
-                    InitStoryScene(&scene9, &scene9_data);
-                    loadProgress = 0.62f;
-                    loadStep++;
-                    break;
-                case 12:
-                    LoadSceneDialogue("data/scene10.txt", &scene10_data);
-                    InitStoryScene(&scene10, &scene10_data);
-                    loadProgress = 0.66f;
-                    loadStep++;
-                    break;
-                case 13:
-                    LoadSceneDialogue("data/scene11.txt", &scene11_data);
-                    InitStoryScene(&scene11, &scene11_data);
-                    loadProgress = 0.70f;
-                    loadStep++;
-                    break;
-                case 14:
-                    LoadSceneDialogue("data/scene12.txt", &scene12_data);
-                    InitStoryScene(&scene12, &scene12_data);
-                    loadProgress = 0.75f;
-                    loadStep++;
-                    break;
-                case 15:
-                    InitStoryScene(&scene13_1, &scene13_1_data);
-                    loadProgress = 0.80f;
-                    loadStep++;
-                    break;
-                case 16:
-                    LoadSceneDialogue("data/scene14_1.txt", &scene14_1_data);
-                    InitStoryScene(&scene14_1, &scene14_1_data);
-                    loadProgress = 0.84f;
-                    loadStep++;
-                    break;
-                case 17:
-                    LoadSceneDialogue("data/scene13_2.txt", &scene13_2_data);
-                    InitStoryScene(&scene13_2, &scene13_2_data);
-                    loadProgress = 0.88f;
-                    loadStep++;
-                    break;
-                case 18:
-                    LoadSceneDialogue("data/scene14_2.txt", &scene14_2_data);
-                    InitStoryScene(&scene14_2, &scene14_2_data);
-                    loadProgress = 0.92f;
-                    loadStep++;
-                    break;
-                case 19:
-                    LoadSceneDialogue("data/scene15_2.txt", &scene15_2_data);
-                    InitStoryScene(&scene15_2, &scene15_2_data);
-                    loadProgress = 0.88f;
-                    loadStep++;
-                    break;
-                case 20:
-                    LoadSceneDialogue("data/scene16_2.txt", &scene16_2_data);
-                    InitStoryScene(&scene16_2, &scene16_2_data);
-                    loadProgress = 0.90f;
-                    loadStep++;
-                    break;
-                case 21:
-                    LoadSceneDialogue("data/scene17_2.txt", &scene17_2_data);
-                    InitStoryScene(&scene17_2, &scene17_2_data);
-                    loadProgress = 0.92f;
-                    loadStep++;
-                    break;
-                case 22:
-                    LoadSceneDialogue("data/scene18_2_1.txt", &scene18_2_1_data);
-                    InitStoryScene(&scene18_2_1, &scene18_2_1_data);
-                    loadProgress = 0.94f;
-                    loadStep++;
-                    break;
-                case 23:
-                    LoadSceneDialogue("data/scene19_2_1.txt", &scene19_2_1_data);
-                    InitStoryScene(&scene19_2_1, &scene19_2_1_data);
-                    loadProgress = 0.96f;
-                    loadStep++;
-                    break;
-                case 24:
-                    LoadSceneDialogue("data/scene20_2_1.txt", &scene20_2_1_data);
-                    InitStoryScene(&scene20_2_1, &scene20_2_1_data);
-                    loadProgress = 0.98f;
-                    loadStep++;
-                    break;
-                case 25:
-                    LoadSceneDialogue("data/scene21_2_1.txt", &scene21_2_1_data);
-                    InitStoryScene(&scene21_2_1, &scene21_2_1_data);
-                    loadProgress = 0.99f;
-                    loadStep++;
-                    break;
-                case 26:
-                    LoadSceneDialogue("data/scene18_2_2.txt", &scene18_2_2_data);
-                    InitStoryScene(&scene18_2_2, &scene18_2_2_data);
-                    loadProgress = 1.0f;
-                    loadStep++;
-                    break;
+                case 3: LoadSceneDialogue("data/scene1.txt", &scene1_data); InitStoryScene(&scene1, &scene1_data); loadProgress = 0.30f; loadStep++; break;
+                case 4: LoadSceneDialogue("data/scene2.txt", &scene2_data); InitStoryScene(&scene2, &scene2_data); loadProgress = 0.34f; loadStep++; break;
+                case 5: LoadSceneDialogue("data/scene3.txt", &scene3_data); InitStoryScene(&scene3, &scene3_data); loadProgress = 0.38f; loadStep++; break;
+                case 6: LoadSceneDialogue("data/scene4.txt", &scene4_data); InitStoryScene(&scene4, &scene4_data); loadProgress = 0.42f; loadStep++; break;
+                case 7: LoadSceneDialogue("data/scene5.txt", &scene5_data); InitStoryScene(&scene5, &scene5_data); loadProgress = 0.46f; loadStep++; break;
+                case 8: LoadSceneDialogue("data/scene6.txt", &scene6_data); InitStoryScene(&scene6, &scene6_data); loadProgress = 0.50f; loadStep++; break;
+                case 9: LoadSceneDialogue("data/scene7.txt", &scene7_data); InitStoryScene(&scene7, &scene7_data); loadProgress = 0.54f; loadStep++; break;
+                case 10: LoadSceneDialogue("data/scene8.txt", &scene8_data); InitStoryScene(&scene8, &scene8_data); loadProgress = 0.58f; loadStep++; break;
+                case 11: LoadSceneDialogue("data/scene9.txt", &scene9_data); InitStoryScene(&scene9, &scene9_data); loadProgress = 0.62f; loadStep++; break;
+                case 12: LoadSceneDialogue("data/scene10.txt", &scene10_data); InitStoryScene(&scene10, &scene10_data); loadProgress = 0.66f; loadStep++; break;
+                case 13: LoadSceneDialogue("data/scene11.txt", &scene11_data); InitStoryScene(&scene11, &scene11_data); loadProgress = 0.70f; loadStep++; break;
+                case 14: LoadSceneDialogue("data/scene12.txt", &scene12_data); InitStoryScene(&scene12, &scene12_data); loadProgress = 0.75f; loadStep++; break;
+                case 15: InitStoryScene(&scene13_1, &scene13_1_data); loadProgress = 0.80f; loadStep++; break;
+                case 16: LoadSceneDialogue("data/scene14_1.txt", &scene14_1_data); InitStoryScene(&scene14_1, &scene14_1_data); loadProgress = 0.84f; loadStep++; break;
+                case 17: LoadSceneDialogue("data/scene13_2.txt", &scene13_2_data); InitStoryScene(&scene13_2, &scene13_2_data); loadProgress = 0.88f; loadStep++; break;
+                case 18: LoadSceneDialogue("data/scene14_2.txt", &scene14_2_data); InitStoryScene(&scene14_2, &scene14_2_data); loadProgress = 0.92f; loadStep++; break;
+                case 19: LoadSceneDialogue("data/scene15_2.txt", &scene15_2_data); InitStoryScene(&scene15_2, &scene15_2_data); loadProgress = 0.88f; loadStep++; break;
+                case 20: LoadSceneDialogue("data/scene16_2.txt", &scene16_2_data); InitStoryScene(&scene16_2, &scene16_2_data); loadProgress = 0.90f; loadStep++; break;
+                case 21: LoadSceneDialogue("data/scene17_2.txt", &scene17_2_data); InitStoryScene(&scene17_2, &scene17_2_data); loadProgress = 0.92f; loadStep++; break;
+                case 22: LoadSceneDialogue("data/scene18_2_1.txt", &scene18_2_1_data); InitStoryScene(&scene18_2_1, &scene18_2_1_data); loadProgress = 0.94f; loadStep++; break;
+                case 23: LoadSceneDialogue("data/scene19_2_1.txt", &scene19_2_1_data); InitStoryScene(&scene19_2_1, &scene19_2_1_data); loadProgress = 0.96f; loadStep++; break;
+                case 24: LoadSceneDialogue("data/scene20_2_1.txt", &scene20_2_1_data); InitStoryScene(&scene20_2_1, &scene20_2_1_data); loadProgress = 0.98f; loadStep++; break;
+                case 25: LoadSceneDialogue("data/scene21_2_1.txt", &scene21_2_1_data); InitStoryScene(&scene21_2_1, &scene21_2_1_data); loadProgress = 0.99f; loadStep++; break;
+                case 26: LoadSceneDialogue("data/scene18_2_2.txt", &scene18_2_2_data); InitStoryScene(&scene18_2_2, &scene18_2_2_data); loadProgress = 1.0f; loadStep++; break;
 
                 case 27:
                     activeMusic = &menuMusic;
@@ -824,57 +736,22 @@ int main(void) {
                 currentScreen = SCREEN_PAUSE;
                 menu.subSelected = 0;
             } else {
-                if (currentScreen == SCREEN_SCENE1) {
-                    UpdateStoryScene(&scene1, vMouse, mouseClicked, vWidth);
-                    if (scene1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE2;
+                if (currentScreen == SCREEN_SCENE1) { UpdateStoryScene(&scene1, vMouse, mouseClicked, vWidth); if (scene1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE2; }
+                else if (currentScreen == SCREEN_SCENE2) { UpdateStoryScene(&scene2, vMouse, mouseClicked, vWidth); if (scene2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE3; }
+                else if (currentScreen == SCREEN_SCENE3) { UpdateStoryScene(&scene3, vMouse, mouseClicked, vWidth); if (scene3.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE4; }
+                else if (currentScreen == SCREEN_SCENE4) { UpdateStoryScene(&scene4, vMouse, mouseClicked, vWidth); if (scene4.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE5; }
+                else if (currentScreen == SCREEN_SCENE5) { UpdateStoryScene(&scene5, vMouse, mouseClicked, vWidth); if (scene5.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE6; }
+                else if (currentScreen == SCREEN_SCENE6) { 
+                    UpdateStoryScene(&scene6, vMouse, mouseClicked, vWidth); 
+                    if (scene6.currentState == SCENE_STATE_DONE) { ResetGameplay(&gameState1); fadeOutMusic = true; nextScreenAfterFade = SCREEN_GAMEPLAY; }
                 }
-                else if (currentScreen == SCREEN_SCENE2) {
-                    UpdateStoryScene(&scene2, vMouse, mouseClicked, vWidth);
-                    if (scene2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE3;
-                }
-                else if (currentScreen == SCREEN_SCENE3) {
-                    UpdateStoryScene(&scene3, vMouse, mouseClicked, vWidth);
-                    if (scene3.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE4;
-                }
-                else if (currentScreen == SCREEN_SCENE4) {
-                    UpdateStoryScene(&scene4, vMouse, mouseClicked, vWidth);
-                    if (scene4.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE5;
-                }
-                else if (currentScreen == SCREEN_SCENE5) {
-                    UpdateStoryScene(&scene5, vMouse, mouseClicked, vWidth);
-                    if (scene5.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE6;
-                }
-                else if (currentScreen == SCREEN_SCENE6) {
-                    UpdateStoryScene(&scene6, vMouse, mouseClicked, vWidth);
-                    if (scene6.currentState == SCENE_STATE_DONE) {
-                        ResetGameplay(&gameState1);
-                        fadeOutMusic = true;
-                        nextScreenAfterFade = SCREEN_GAMEPLAY;
-                    }
-                }
-                else if (currentScreen == SCREEN_SCENE7) {
-                    UpdateStoryScene(&scene7, vMouse, mouseClicked, vWidth);
-                    if (scene7.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE8;
-                }
-                else if (currentScreen == SCREEN_SCENE8) {
-                    UpdateStoryScene(&scene8, vMouse, mouseClicked, vWidth);
-                    if (scene8.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE9;
-                }
-                else if (currentScreen == SCREEN_SCENE9) {
-                    UpdateStoryScene(&scene9, vMouse, mouseClicked, vWidth);
-                    if (scene9.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE10;
-                }
-                else if (currentScreen == SCREEN_SCENE10) {
-                    UpdateStoryScene(&scene10, vMouse, mouseClicked, vWidth);
-                    if (scene10.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE11;
-                }
-                else if (currentScreen == SCREEN_SCENE11) {
-                    UpdateStoryScene(&scene11, vMouse, mouseClicked, vWidth);
-                    if (scene11.currentState == SCENE_STATE_DONE) {
-                        ResetGameplay(&gameState2);
-                        fadeOutMusic = true;
-                        nextScreenAfterFade = SCREEN_GAMEPLAY2;
-                    }
+                else if (currentScreen == SCREEN_SCENE7) { UpdateStoryScene(&scene7, vMouse, mouseClicked, vWidth); if (scene7.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE8; }
+                else if (currentScreen == SCREEN_SCENE8) { UpdateStoryScene(&scene8, vMouse, mouseClicked, vWidth); if (scene8.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE9; }
+                else if (currentScreen == SCREEN_SCENE9) { UpdateStoryScene(&scene9, vMouse, mouseClicked, vWidth); if (scene9.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE10; }
+                else if (currentScreen == SCREEN_SCENE10) { UpdateStoryScene(&scene10, vMouse, mouseClicked, vWidth); if (scene10.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE11; }
+                else if (currentScreen == SCREEN_SCENE11) { 
+                    UpdateStoryScene(&scene11, vMouse, mouseClicked, vWidth); 
+                    if (scene11.currentState == SCENE_STATE_DONE) { ResetGameplay(&gameState2); fadeOutMusic = true; nextScreenAfterFade = SCREEN_GAMEPLAY2; }
                 }
                 else if (currentScreen == SCREEN_SCENE12) {
                     UpdateStoryScene(&scene12, vMouse, mouseClicked, vWidth);
@@ -883,98 +760,100 @@ int main(void) {
                         else currentScreen = SCREEN_SCENE13_2;
                     }
                 }
-                else if (currentScreen == SCREEN_SCENE13_1) {
-                    if (mouseClicked || enterPressed) {
-                        currentScreen = SCREEN_SCENE14_1;
-                    }
-                }
-                else if (currentScreen == SCREEN_SCENE14_1) {
-                    UpdateStoryScene(&scene14_1, vMouse, mouseClicked, vWidth);
-                    if (scene14_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE18_2_1;
-                }
-                else if (currentScreen == SCREEN_SCENE13_2) {
-                    UpdateStoryScene(&scene13_2, vMouse, mouseClicked, vWidth);
-                    if (scene13_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE14_2;
-                }
-                else if (currentScreen == SCREEN_SCENE14_2) {
-                    UpdateStoryScene(&scene14_2, vMouse, mouseClicked, vWidth);
-                    if (scene14_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE15_2;
-                }
-                else if (currentScreen == SCREEN_SCENE15_2) {
-                    UpdateStoryScene(&scene15_2, vMouse, mouseClicked, vWidth);
-                    if (scene15_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE16_2;
-                }
-                else if (currentScreen == SCREEN_SCENE16_2) {
-                    UpdateStoryScene(&scene16_2, vMouse, mouseClicked, vWidth);
-                    if (scene16_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE17_2;
-                }
+                else if (currentScreen == SCREEN_SCENE13_1) { if (mouseClicked || enterPressed) { currentScreen = SCREEN_SCENE14_1; } }
+                else if (currentScreen == SCREEN_SCENE14_1) { UpdateStoryScene(&scene14_1, vMouse, mouseClicked, vWidth); if (scene14_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE18_2_1; }
+                else if (currentScreen == SCREEN_SCENE13_2) { UpdateStoryScene(&scene13_2, vMouse, mouseClicked, vWidth); if (scene13_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE14_2; }
+                else if (currentScreen == SCREEN_SCENE14_2) { UpdateStoryScene(&scene14_2, vMouse, mouseClicked, vWidth); if (scene14_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE15_2; }
+                else if (currentScreen == SCREEN_SCENE15_2) { UpdateStoryScene(&scene15_2, vMouse, mouseClicked, vWidth); if (scene15_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE16_2; }
+                else if (currentScreen == SCREEN_SCENE16_2) { UpdateStoryScene(&scene16_2, vMouse, mouseClicked, vWidth); if (scene16_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE17_2; }
+                
+                // --------- LAUNCH TEKKEN FIGHT AFTER SCENE 17_2 ---------
                 else if (currentScreen == SCREEN_SCENE17_2) {
                     UpdateStoryScene(&scene17_2, vMouse, mouseClicked, vWidth);
                     if (scene17_2.currentState == SCENE_STATE_DONE) {
-                        if (scene17_2.selectedChoice == 1) currentScreen = SCREEN_SCENE18_2_1;
-                        else currentScreen = SCREEN_SCENE18_2_2;
+                        InitCharacter(&playerTekken, (Vector2){ 250, 100 }, true);
+                        InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, false);
+                        tekkenTimer = 99.0f;
+                        tekkenEndDelay = 0.0f;
+                        showTekkenControls = true;
+                        currentScreen = SCREEN_TEKKEN_FIGHT; 
                     }
                 }
+                // -----------------------------------------------------------
+
                 else if (currentScreen == SCREEN_SCENE18_2_1) {
                     UpdateStoryScene(&scene18_2_1, vMouse, mouseClicked, vWidth);
-                    if (scene18_2_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE19_2_1;
+                    if (scene18_2_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE19_2_1; 
                 }
-                else if (currentScreen == SCREEN_SCENE19_2_1) {
-                    UpdateStoryScene(&scene19_2_1, vMouse, mouseClicked, vWidth);
-                    if (scene19_2_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE20_2_1;
-                }
-                else if (currentScreen == SCREEN_SCENE20_2_1) {
-                    UpdateStoryScene(&scene20_2_1, vMouse, mouseClicked, vWidth);
-                    if (scene20_2_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE21_2_1;
-                }
+                else if (currentScreen == SCREEN_SCENE19_2_1) { UpdateStoryScene(&scene19_2_1, vMouse, mouseClicked, vWidth); if (scene19_2_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE20_2_1; }
+                else if (currentScreen == SCREEN_SCENE20_2_1) { UpdateStoryScene(&scene20_2_1, vMouse, mouseClicked, vWidth); if (scene20_2_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE21_2_1; }
                 else if (currentScreen == SCREEN_SCENE21_2_1) {
                     UpdateStoryScene(&scene21_2_1, vMouse, mouseClicked, vWidth);
-                    if (scene21_2_1.currentState == SCENE_STATE_DONE) {
-                        fadeOutMusic = true;
-                        nextScreenAfterFade = SCREEN_MENU;
-                    }
+                    if (scene21_2_1.currentState == SCENE_STATE_DONE) { fadeOutMusic = true; nextScreenAfterFade = SCREEN_MENU; }
                 }
                 else if (currentScreen == SCREEN_SCENE18_2_2) {
                     UpdateStoryScene(&scene18_2_2, vMouse, mouseClicked, vWidth);
-                    if (scene18_2_2.currentState == SCENE_STATE_DONE) {
-                        fadeOutMusic = true;
-                        nextScreenAfterFade = SCREEN_MENU;
-                    }
+                    if (scene18_2_2.currentState == SCENE_STATE_DONE) { fadeOutMusic = true; nextScreenAfterFade = SCREEN_MENU; }
                 }
             }
         }
         else if (currentScreen == SCREEN_GAMEPLAY) {
             bool requestPause = false;
             bool requestNextScene = false;
-
             UpdateGameplay(&gameState1, menu.keys, loseSfx, winSfx, heartPickSfx, speedSfx, inGameMusic, &requestPause, &requestNextScene, mouseClicked);
-            if (requestPause) {
-                pausedFromScreen = currentScreen;
-                currentScreen = SCREEN_PAUSE;
-                menu.subSelected = 0;
-            }
-
-            if (requestNextScene) {
-                fadeOutMusic = true;
-                nextScreenAfterFade = SCREEN_SCENE7;
-            }
+            if (requestPause) { pausedFromScreen = currentScreen; currentScreen = SCREEN_PAUSE; menu.subSelected = 0; }
+            if (requestNextScene) { fadeOutMusic = true; nextScreenAfterFade = SCREEN_SCENE7; }
         }
         else if (currentScreen == SCREEN_GAMEPLAY2) {
             bool requestPause = false;
             bool requestNextScene = false;
-
             UpdateGameplay(&gameState2, menu.keys, loseSfx, winSfx, heartPickSfx, speedSfx, inGameMusic, &requestPause, &requestNextScene, mouseClicked);
-            if (requestPause) {
-                pausedFromScreen = currentScreen;
-                currentScreen = SCREEN_PAUSE;
-                menu.subSelected = 0;
-            }
+            if (requestPause) { pausedFromScreen = currentScreen; currentScreen = SCREEN_PAUSE; menu.subSelected = 0; }
+            if (requestNextScene) { fadeOutMusic = true; nextScreenAfterFade = SCREEN_SCENE12; }
+        }
+        
+        // --------- TEKKEN UPDATE LOOP ---------
+        else if (currentScreen == SCREEN_TEKKEN_FIGHT) {
+            if (showTekkenControls) {
+                // Check if OK button is clicked (updated bounds for the bigger UI)
+                Rectangle okButton = { (vWidth / 2.0f) - 60, (vHeight / 2.0f) + 110, 120, 50 };
+                if (CheckCollisionPointRec(vMouse, okButton) && mouseClicked) {
+                    showTekkenControls = false; // Dismiss pop-up and start fight
+                }
+            } else {
+                if (IsKeyPressed(KEY_M) || IsKeyPressed(KEY_ESCAPE)) {
+                    pausedFromScreen = currentScreen;
+                    currentScreen = SCREEN_PAUSE;
+                    menu.subSelected = 0;
+                } else {
+                    float dt = GetFrameTime();
+                    if (tekkenTimer > 0 && playerTekken.health > 0 && enemyTekken.health > 0) {
+                        tekkenTimer -= dt;
+                    }
 
-            if (requestNextScene) {
-                fadeOutMusic = true;
-                nextScreenAfterFade = SCREEN_SCENE12;
+                    UpdateCharacter(&playerTekken, &enemyTekken, dt, true);
+                    UpdateCharacter(&enemyTekken, &playerTekken, dt, false);
+
+                    if (playerTekken.state == STATE_DEAD || enemyTekken.state == STATE_DEAD || tekkenTimer <= 0) {
+                        tekkenEndDelay += dt;
+                        if (tekkenEndDelay > 3.0f && !fadeOutMusic) { 
+                            fadeOutMusic = true;
+                            if (enemyTekken.health <= 0 || (tekkenTimer <= 0 && playerTekken.health > enemyTekken.health)) {
+                                // Route based on scene17_2 choice
+                                if (scene17_2.selectedChoice == 1) {
+                                    nextScreenAfterFade = SCREEN_SCENE18_2_1; 
+                                } else {
+                                    nextScreenAfterFade = SCREEN_SCENE18_2_2;
+                                }
+                            } else {
+                                nextScreenAfterFade = SCREEN_MENU; 
+                            }
+                        }
+                    }
+                }
             }
         }
+        // ----------------------------------------
         else if (currentScreen == SCREEN_PAUSE) {
             int action = UpdatePauseMenu(&menu, vMouse, vWidth, vHeight);
             if (action == 1) currentScreen = pausedFromScreen;
@@ -1039,14 +918,7 @@ render_phase:
                 else if (bgScreen == SCREEN_SCENE11) DrawStoryScene(&scene11, vWidth, vHeight);
                 else if (bgScreen == SCREEN_SCENE12) DrawStoryScene(&scene12, vWidth, vHeight);
                 else if (bgScreen == SCREEN_SCENE13_1) {
-                    DrawTexturePro(
-                        scene13_1.bgTexture,
-                        (Rectangle){ 0, 0, (float)scene13_1.bgTexture.width, (float)scene13_1.bgTexture.height },
-                        (Rectangle){ 0, 0, (float)vWidth, (float)vHeight },
-                        (Vector2){ 0, 0 },
-                        0.0f,
-                        WHITE
-                    );
+                    DrawTexturePro(scene13_1.bgTexture, (Rectangle){ 0, 0, (float)scene13_1.bgTexture.width, (float)scene13_1.bgTexture.height }, (Rectangle){ 0, 0, (float)vWidth, (float)vHeight }, (Vector2){ 0, 0 }, 0.0f, WHITE);
                 }
                 else if (bgScreen == SCREEN_SCENE14_1) DrawStoryScene(&scene14_1, vWidth, vHeight);
                 else if (bgScreen == SCREEN_SCENE13_2) DrawStoryScene(&scene13_2, vWidth, vHeight);
@@ -1066,6 +938,56 @@ render_phase:
             else if (bgScreen == SCREEN_GAMEPLAY2) {
                 DrawGameplay(&gameState2, vWidth, vHeight);
             }
+            
+            // --------- TEKKEN RENDER LOGIC ---------
+            else if (bgScreen == SCREEN_TEKKEN_FIGHT) {
+                ClearBackground(BLACK);
+                
+                // Draw the Arena Background scaled to fit the 1280x720 window
+                DrawTexturePro(
+                    tekkenBg, 
+                    (Rectangle){ 0, 0, tekkenBg.width, tekkenBg.height }, 
+                    (Rectangle){ 0, 0, vWidth, vHeight }, 
+                    (Vector2){ 0, 0 }, 
+                    0.0f, 
+                    WHITE
+                );
+
+                DrawCharacter(&playerTekken);
+                DrawCharacter(&enemyTekken);
+                DrawGameUI(playerTekken.health, enemyTekken.health, (int)tekkenTimer, vWidth);
+                
+                // Draw Controls UI
+                DrawText("A/D to Walk | L-SHIFT to Run | S to Shield | SPACE to Jump", 20, vHeight - 60, 20, RAYWHITE);
+                DrawText("Left Click = Atk 1 | Right Click = Atk 2 | E = Atk 3", 20, vHeight - 30, 20, RAYWHITE);
+
+                // Draw Pop-up Overlay
+                if (showTekkenControls) {
+                    DrawRectangle(0, 0, vWidth, vHeight, Fade(BLACK, 0.7f));
+                    
+                    // Main Background (Bigger and Black)
+                    DrawRectangle((vWidth / 2) - 300, (vHeight / 2) - 200, 600, 400, BLACK);
+                    
+                    // Left and Right Thick Borders
+                    DrawRectangle((vWidth / 2) - 300, (vHeight / 2) - 200, 15, 400, RED); // Left border
+                    DrawRectangle((vWidth / 2) + 285, (vHeight / 2) - 200, 15, 400, RED); // Right border
+                    
+                    // Thin White Outline
+                    DrawRectangleLines((vWidth / 2) - 300, (vHeight / 2) - 200, 600, 400, WHITE);
+                    
+                    DrawText("FIGHT CONTROLS", (vWidth / 2) - MeasureText("FIGHT CONTROLS", 40) / 2, (vHeight / 2) - 150, 40, RAYWHITE);
+                    DrawText("Movement: A / D", (vWidth / 2) - 200, (vHeight / 2) - 70, 20, LIGHTGRAY);
+                    DrawText("Jump: SPACE   Shield: S   Run: L-SHIFT", (vWidth / 2) - 200, (vHeight / 2) - 20, 20, LIGHTGRAY);
+                    DrawText("Attacks: L-Click / R-Click / E", (vWidth / 2) - 200, (vHeight / 2) + 30, 20, LIGHTGRAY);
+                    
+                    Rectangle okButton = { (vWidth / 2) - 60, (vHeight / 2) + 110, 120, 50 };
+                    Color btnColor = CheckCollisionPointRec(vMouse, okButton) ? LIGHTGRAY : GRAY; // Hover effect
+                    DrawRectangleRec(okButton, btnColor);
+                    DrawRectangleLinesEx(okButton, 2, WHITE);
+                    DrawText("FIGHT", (int)okButton.x + 30, (int)okButton.y + 15, 20, BLACK);
+                }
+            }
+            // ---------------------------------------
 
             if (currentScreen == SCREEN_PAUSE) DrawPauseMenu(&menu, vWidth, vHeight);
             if (currentScreen == SCREEN_SAVE_GAME) DrawSaveMenu(&menu, vWidth, vHeight);
@@ -1137,6 +1059,15 @@ cleanup:
     UnloadTexture(menu.settingsBg);
     UnloadTexture(menu.saveBg);
     UnloadRenderTexture(target);
+
+    // --- TEKKEN CLEANUP ---
+    for(int i = 0; i < NUM_STATES; i++) {
+        UnloadTexture(playerTekken.textures[i]);
+        UnloadTexture(enemyTekken.textures[i]);
+    }
+    UnloadTexture(tekkenBg);
+    UnloadTilemap(&tekkenMap);
+    // ----------------------
 
     UnloadMusicStream(menuMusic);
     UnloadMusicStream(storyMusic);
