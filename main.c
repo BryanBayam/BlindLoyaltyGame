@@ -143,13 +143,13 @@ void InitCharacter(Character* c, Vector2 startPos, int charType) {
     
     // Switch load paths
     const char* basePath = "";
-    if (charType == 0) basePath = "images/Character/Fighter";
-    else if (charType == 2) basePath = "images/Character/Samurai";
-    else if (charType == 1) basePath = "images/Character/Warrior_3";
+    if (charType == 0) basePath = "images/Character/Reuben";
+    else if (charType == 2) basePath = "images/Character/Commander";
+    else if (charType == 1) basePath = "images/Character/Ashat Leader";
 
     c->textures[STATE_IDLE] = LoadTexture(TextFormat("%s/Idle.png", basePath));
     c->textures[STATE_WALK] = LoadTexture(TextFormat("%s/Walk.png", basePath));
-    c->textures[STATE_RUN] = LoadTexture(TextFormat("%s/Run.png", basePath));
+    c->textures[STATE_RUN] = LoadTexture(TextFormat("%s/Walk.png", basePath));
     c->textures[STATE_JUMP] = LoadTexture(TextFormat("%s/Jump.png", basePath));
     c->textures[STATE_ATTACK_1] = LoadTexture(TextFormat("%s/Attack_1.png", basePath));
     c->textures[STATE_ATTACK_2] = LoadTexture(TextFormat("%s/Attack_2.png", basePath));
@@ -157,8 +157,8 @@ void InitCharacter(Character* c, Vector2 startPos, int charType) {
     c->textures[STATE_DEAD] = LoadTexture(TextFormat("%s/Dead.png", basePath));
 
     if (charType ==1) { // Specific names for the new character set
-        c->textures[STATE_SHIELD] = LoadTexture(TextFormat("%s/Protect.png", basePath));
-        c->textures[STATE_ATTACK_3] = LoadTexture(TextFormat("%s/Run+Attack.png", basePath));
+        c->textures[STATE_SHIELD] = LoadTexture(TextFormat("%s/Defence.png", basePath));
+        c->textures[STATE_ATTACK_3] = LoadTexture(TextFormat("%s/Attack_2.png", basePath));
     } else {
         c->textures[STATE_SHIELD] = LoadTexture(TextFormat("%s/Shield.png", basePath));
         c->textures[STATE_ATTACK_3] = LoadTexture(TextFormat("%s/Attack_3.png", basePath));
@@ -167,8 +167,8 @@ void InitCharacter(Character* c, Vector2 startPos, int charType) {
     // Frame Counts mapping
     if (charType == 0) {
         c->frameCounts[STATE_IDLE] = 6;
-        c->frameCounts[STATE_WALK] = 8;
-        c->frameCounts[STATE_RUN] = 8;
+        c->frameCounts[STATE_WALK] = 6;
+        c->frameCounts[STATE_RUN] = 6;
         c->frameCounts[STATE_JUMP] = 10;
         c->frameCounts[STATE_SHIELD] = 2;
         c->frameCounts[STATE_ATTACK_1] = 4;
@@ -179,12 +179,12 @@ void InitCharacter(Character* c, Vector2 startPos, int charType) {
     } else if (charType == 1) {
         c->frameCounts[STATE_IDLE] = 5;
         c->frameCounts[STATE_WALK] = 8;
-        c->frameCounts[STATE_RUN] = 6;
+        c->frameCounts[STATE_RUN] = 8;
         c->frameCounts[STATE_JUMP] = 8;
         c->frameCounts[STATE_SHIELD] = 3;
         c->frameCounts[STATE_ATTACK_1] = 4;
         c->frameCounts[STATE_ATTACK_2] = 3;
-        c->frameCounts[STATE_ATTACK_3] = 4;
+        c->frameCounts[STATE_ATTACK_3] = 3;
         c->frameCounts[STATE_HURT] = 2;
         c->frameCounts[STATE_DEAD] = 4;
     } else if (charType == 2) {
