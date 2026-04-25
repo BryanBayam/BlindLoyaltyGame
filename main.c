@@ -9,8 +9,8 @@
 #include "character.h"
 #include "story_scene.h"
 
-// INCLUDE TEKKEN FIGHTER ENGINE HEADERS
-#include "tekkenplayer.h"
+// INCLUDE BATTLE ENGINE
+#include "battle.h"
 
 #define ENEMY_IMPLEMENTATION
 #include "enemy.h"
@@ -124,317 +124,6 @@ SceneData scene20_2_1_data = { .bgPath = "images/Background/Scene/Scene20_2_1.jp
 SceneData scene21_2_1_data = { .bgPath = "images/Background/Scene/Scene21_2_1.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
 SceneData scene18_2_2_data = { .bgPath = "images/Background/Scene/Scene18_2_2.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
 
-// --- TEKKEN MINIGAME ENGINE FUNCTIONS ---
-const float GRAVITY = 1200.0f;
-const float JUMP_FORCE = -550.0f;
-const float GROUND_Y = 680.0f; 
-
-// charType: 0 = Player, 1 = Samurai, 2 = Viking
-// charType: 0 = Player, 1 = Samurai, 2 = Viking
-void InitCharacter(Character* c, Vector2 startPos, int charType) {
-    c->position = startPos;
-    c->velocity = (Vector2){ 0, 0 };
-    c->state = STATE_IDLE;
-    c->facingRight = (charType == 0);
-    c->isGrounded = false;
-    c->health = 100;
-    c->aiTimer = 0.0f;
-    c->hasHealed = false; // <-- Added this to reset the heal ability
-    
-    // Switch load paths
-    const char* basePath = "";
-    if (charType == 0) basePath = "images/Character/Reuben";
-    else if (charType == 2) basePath = "images/Character/Commander";
-    else if (charType == 1) basePath = "images/Character/Ashat Leader";
-
-    c->textures[STATE_IDLE] = LoadTexture(TextFormat("%s/Idle.png", basePath));
-    c->textures[STATE_WALK] = LoadTexture(TextFormat("%s/Walk.png", basePath));
-    c->textures[STATE_RUN] = LoadTexture(TextFormat("%s/Walk.png", basePath));
-    c->textures[STATE_JUMP] = LoadTexture(TextFormat("%s/Jump.png", basePath));
-    c->textures[STATE_ATTACK_1] = LoadTexture(TextFormat("%s/Attack_1.png", basePath));
-    c->textures[STATE_ATTACK_2] = LoadTexture(TextFormat("%s/Attack_2.png", basePath));
-    c->textures[STATE_HURT] = LoadTexture(TextFormat("%s/Hurt.png", basePath));
-    c->textures[STATE_DEAD] = LoadTexture(TextFormat("%s/Dead.png", basePath));
-
-    if (charType ==1) { // Specific names for the new character set
-        c->textures[STATE_SHIELD] = LoadTexture(TextFormat("%s/Defence.png", basePath));
-        c->textures[STATE_ATTACK_3] = LoadTexture(TextFormat("%s/Attack_2.png", basePath));
-    } else {
-        c->textures[STATE_SHIELD] = LoadTexture(TextFormat("%s/Shield.png", basePath));
-        c->textures[STATE_ATTACK_3] = LoadTexture(TextFormat("%s/Attack_3.png", basePath));
-    }
-    
-    // Frame Counts mapping
-    if (charType == 0) {
-        c->frameCounts[STATE_IDLE] = 6;
-        c->frameCounts[STATE_WALK] = 6;
-        c->frameCounts[STATE_RUN] = 6;
-        c->frameCounts[STATE_JUMP] = 10;
-        c->frameCounts[STATE_SHIELD] = 2;
-        c->frameCounts[STATE_ATTACK_1] = 4;
-        c->frameCounts[STATE_ATTACK_2] = 3;
-        c->frameCounts[STATE_ATTACK_3] = 4;
-        c->frameCounts[STATE_HURT] = 3;
-        c->frameCounts[STATE_DEAD] = 3;
-    } else if (charType == 1) {
-        c->frameCounts[STATE_IDLE] = 5;
-        c->frameCounts[STATE_WALK] = 8;
-        c->frameCounts[STATE_RUN] = 8;
-        c->frameCounts[STATE_JUMP] = 8;
-        c->frameCounts[STATE_SHIELD] = 3;
-        c->frameCounts[STATE_ATTACK_1] = 4;
-        c->frameCounts[STATE_ATTACK_2] = 3;
-        c->frameCounts[STATE_ATTACK_3] = 3;
-        c->frameCounts[STATE_HURT] = 2;
-        c->frameCounts[STATE_DEAD] = 4;
-    } else if (charType == 2) {
-        c->frameCounts[STATE_IDLE] = 6;
-        c->frameCounts[STATE_WALK] = 8;
-        c->frameCounts[STATE_RUN] = 8;
-        c->frameCounts[STATE_JUMP] = 12;
-        c->frameCounts[STATE_SHIELD] = 2;
-        c->frameCounts[STATE_ATTACK_1] = 6;
-        c->frameCounts[STATE_ATTACK_2] = 4;
-        c->frameCounts[STATE_ATTACK_3] = 3;
-        c->frameCounts[STATE_HURT] = 2;
-        c->frameCounts[STATE_DEAD] = 3;
-    }
-    
-    c->currentFrame = 0;
-    c->frameTimer = 0.0f;
-    c->frameDuration = 0.1f;
-    c->hitBox = (Rectangle){ c->position.x, c->position.y, 50, 100 }; 
-}
-
-void UpdateCharacter(Character* c, Character* opponent, float dt, bool isPlayer) {
-    if (c->state != STATE_DEAD) {
-        c->velocity.y += GRAVITY * dt;
-        c->position.y += c->velocity.y * dt;
-
-        if (c->position.y >= GROUND_Y) {
-            c->position.y = GROUND_Y;
-            c->velocity.y = 0.0f;
-            c->isGrounded = true;
-            if (c->state == STATE_JUMP) c->state = STATE_IDLE;
-        } else {
-            c->isGrounded = false;
-        }
-    }
-
-    // Player Input Logic
-    if (isPlayer && c->state != STATE_DEAD && c->state != STATE_HURT && 
-        c->state != STATE_ATTACK_1 && c->state != STATE_ATTACK_2 && c->state != STATE_ATTACK_3) 
-    {
-        bool isMoving = false;
-        float moveSpeed = IsKeyDown(KEY_LEFT_SHIFT) ? 500.0f : 250.0f;
-        CharState moveState = IsKeyDown(KEY_LEFT_SHIFT) ? STATE_RUN : STATE_WALK;
-
-        if (IsKeyDown(KEY_D)) {
-            c->position.x += moveSpeed * dt;
-            if (c->isGrounded) c->state = moveState;
-            c->facingRight = true;
-            isMoving = true;
-        } else if (IsKeyDown(KEY_A)) {
-            c->position.x -= moveSpeed * dt;
-            if (c->isGrounded) c->state = moveState;
-            c->facingRight = false;
-            isMoving = true;
-        } 
-        
-        if (IsKeyDown(KEY_S) && c->isGrounded && !isMoving) {
-            c->state = STATE_SHIELD;
-        } else if (!isMoving && c->isGrounded && c->state != STATE_SHIELD) {
-            c->state = STATE_IDLE;
-        }
-
-        if (IsKeyPressed(KEY_SPACE) && c->isGrounded) {
-            c->velocity.y = JUMP_FORCE;
-            c->state = STATE_JUMP;
-            c->currentFrame = 0;
-        }
-
-        if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsKeyPressed(KEY_E)) && c->isGrounded) {
-            int damage = 10;
-
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) { c->state = STATE_ATTACK_1; damage = 10; } 
-            else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) { c->state = STATE_ATTACK_2; damage = 15; } 
-            else if (IsKeyPressed(KEY_E)) { c->state = STATE_ATTACK_3; damage = 25; }
-            
-            c->currentFrame = 0; 
-            
-            // Hit detection against Enemy
-            if (fabs(c->position.x - opponent->position.x) < 140.0f && opponent->state != STATE_DEAD) {
-                
-                // --- AI FEATURE: Smart Blocking ---
-                if (opponent->state == STATE_IDLE || opponent->state == STATE_WALK || opponent->state == STATE_RUN) {
-                    if (GetRandomValue(1, 100) <= 75) { 
-                        opponent->state = STATE_SHIELD;
-                        opponent->currentFrame = 0;
-                    }
-                }
-
-                if (opponent->state == STATE_SHIELD) {
-                    damage = 0; // Blocked
-                } else {
-                    opponent->state = STATE_HURT;
-                    opponent->currentFrame = 0;
-                }
-                
-                opponent->health -= damage;
-                if (opponent->health <= 0) {
-                    opponent->health = 0;
-                    opponent->state = STATE_DEAD;
-                    opponent->currentFrame = 0;
-                }
-            }
-        }
-    } 
-    // ENEMY AI LOGIC (CHASING, RANDOM ATTACKS, FLEEING)
-    else if (!isPlayer && c->state != STATE_DEAD && c->state != STATE_HURT && 
-             c->state != STATE_ATTACK_1 && c->state != STATE_ATTACK_2 && c->state != STATE_ATTACK_3) 
-    {
-        c->facingRight = (opponent->position.x > c->position.x);
-        float distanceToPlayer = fabs(c->position.x - opponent->position.x);
-
-        c->aiTimer -= dt;
-
-        // --- NEW AI FEATURE: Flee under 20% health, hit border, and heal once ---
-        if (c->health < 20 && !c->hasHealed) {
-            c->facingRight = (opponent->position.x < c->position.x); // Face away from player
-            float moveDir = (opponent->position.x > c->position.x) ? -1.0f : 1.0f;
-            c->position.x += moveDir * 320.0f * dt; // Run away quickly
-            if (c->isGrounded) c->state = STATE_RUN;
-
-            // Check if the enemy has hit the screen borders (5px buffer from the edge limits)
-            if (c->position.x <= 55.0f || c->position.x >= 1225.0f) {
-                c->health += 40; // Heal 40%
-                if (c->health > 100) c->health = 100; // Cap at max
-                c->hasHealed = true; // Ability used up
-            }
-        }
-        // --- NEW AI FEATURE: Chase player dynamically ---
-        else if (distanceToPlayer > 120.0f) {
-            if (distanceToPlayer > 300.0f) {
-                // If the player is far away (running), the enemy sprints to catch up
-                c->position.x += (c->facingRight ? 320.0f : -320.0f) * dt;
-                if (c->isGrounded) c->state = STATE_RUN;
-            } else {
-                // Normal walking distance
-                c->position.x += (c->facingRight ? 220.0f : -220.0f) * dt;
-                if (c->isGrounded) c->state = STATE_WALK;
-            }
-        } 
-        // If close enough, stop walking and randomly attack
-        else {
-            if (c->isGrounded && c->state != STATE_IDLE && c->state != STATE_SHIELD) c->state = STATE_IDLE;
-
-            if (c->aiTimer <= 0.0f && opponent->state != STATE_DEAD) {
-                int randAttack = GetRandomValue(1, 3);
-                int damage = 0;
-
-                if (randAttack == 1) { c->state = STATE_ATTACK_1; damage = 10; }
-                else if (randAttack == 2) { c->state = STATE_ATTACK_2; damage = 15; }
-                else { c->state = STATE_ATTACK_3; damage = 25; }
-
-                c->currentFrame = 0;
-                
-                // --- AI FEATURE: Truly randomized, aggressive attack pacing ---
-                c->aiTimer = GetRandomValue(4, 16) / 10.0f; 
-
-                if (opponent->state == STATE_SHIELD) {
-                    damage = 0; 
-                } else {
-                    opponent->state = STATE_HURT;
-                    opponent->currentFrame = 0;
-                }
-                
-                opponent->health -= damage;
-                if (opponent->health <= 0) {
-                    opponent->health = 0;
-                    opponent->state = STATE_DEAD;
-                    opponent->currentFrame = 0;
-                }
-            }
-        }
-    }
-
-    // Screen Boundary Limit
-    if (c->position.x < 50.0f) c->position.x = 50.0f;
-    if (c->position.x > 1230.0f) c->position.x = 1230.0f;
-
-    // Animation Loop
-    c->frameTimer += dt;
-    if (c->frameTimer >= c->frameDuration) {
-        c->frameTimer = 0.0f;
-        c->currentFrame++;
-
-        if (c->currentFrame >= c->frameCounts[c->state]) {
-            if (c->state == STATE_ATTACK_1 || c->state == STATE_ATTACK_2 || c->state == STATE_ATTACK_3 || c->state == STATE_HURT) {
-                if (c->health <= 0) {
-                    c->state = STATE_DEAD;
-                    c->currentFrame = 0;
-                } else {
-                    c->state = STATE_IDLE; 
-                }
-            } else if (c->state == STATE_JUMP) {
-                c->currentFrame = c->frameCounts[STATE_JUMP] - 1; 
-            } else if (c->state == STATE_DEAD) {
-                c->currentFrame = c->frameCounts[STATE_DEAD] - 1; 
-            } else if (c->state == STATE_SHIELD) {
-                c->currentFrame = c->frameCounts[STATE_SHIELD] - 1; 
-            } else {
-                c->currentFrame = 0; 
-            }
-        }
-    }
-}
-
-void DrawCharacter(Character* c) {
-    Texture2D tex = c->textures[c->state];
-    if (tex.id == 0) return; 
-
-    int numFrames = c->frameCounts[c->state];
-    float frameWidth = (float)tex.width / numFrames;
-    float frameHeight = (float)tex.height;
-
-    Rectangle sourceRec = { 
-        (float)c->currentFrame * frameWidth, 0.0f, 
-        c->facingRight ? frameWidth : -frameWidth, frameHeight 
-    };
-
-    Rectangle destRec = { 
-        c->position.x, c->position.y, 
-        frameWidth * 3.5f, frameHeight * 3.5f 
-    };
-
-    Vector2 origin = { (frameWidth * 3.5f) / 2.0f, frameHeight * 3.5f };
-    DrawTexturePro(tex, sourceRec, destRec, origin, 0.0f, WHITE);
-}
-
-void DrawGameUI(int playerHealth, int enemyHealth, int timeRemaining, int screenWidth) {
-    int barWidth = (screenWidth / 2) - 80;
-    int barHeight = 40;
-    int padding = 30;
-
-    DrawRectangle((screenWidth / 2) - 30, padding, 60, 50, BLACK);
-    DrawRectangleLines((screenWidth / 2) - 30, padding, 60, 50, WHITE);
-    
-    char timeText[5];
-    sprintf(timeText, "%02d", timeRemaining);
-    DrawText(timeText, (screenWidth / 2) - 15, padding + 15, 20, WHITE);
-
-    float p1HealthPct = (float)playerHealth / 100.0f;
-    DrawRectangle(padding, padding + 5, barWidth, barHeight, RED); 
-    DrawRectangle(padding + (barWidth * (1.0f - p1HealthPct)), padding + 5, barWidth * p1HealthPct, barHeight, BLUE);
-    DrawRectangleLines(padding, padding + 5, barWidth, barHeight, WHITE);
-
-    float p2HealthPct = (float)enemyHealth / 100.0f;
-    DrawRectangle(screenWidth / 2 + 50, padding + 5, barWidth, barHeight, RED); 
-    DrawRectangle(screenWidth / 2 + 50, padding + 5, barWidth * p2HealthPct, barHeight, BLUE);
-    DrawRectangleLines(screenWidth / 2 + 50, padding + 5, barWidth, barHeight, WHITE);
-}
-// ------------------------------------------
-
 static bool IsGameplayScreen(GameScreen screen) {
     return screen == SCREEN_GAMEPLAY || screen == SCREEN_GAMEPLAY2 || screen == SCREEN_TEKKEN_FIGHT;
 }
@@ -536,6 +225,10 @@ int main(void) {
     float tekkenTimer = 99.0f;
     float tekkenEndDelay = 0.0f;
     bool showTekkenControls = false;
+    bool tekkenLoseSfxPlayed = false;
+    bool tekkenWinSfxPlayed = false;
+    bool tekkenShowResultOverlay = false;
+    bool tekkenFinalWin = false;
     Tilemap tekkenMap = { 0 };
     Texture2D tekkenBg = { 0 };
     Texture2D tekkenBg2 = { 0 };
@@ -555,6 +248,7 @@ int main(void) {
     Music menuMusic = { 0 };
     Music storyMusic = { 0 };
     Music inGameMusic = { 0 };
+    Music duelMusic = { 0 };
     Music *activeMusic = NULL;
 
     Sound pressButtonSfx = { 0 };
@@ -592,15 +286,38 @@ int main(void) {
             UpdateMusicStream(*activeMusic);
         }
 
+        UpdateBattleSfxQueue();
+
         if (currentScreen != previousScreen) {
             StopSound(battleSfx);
             StopSound(clappingSfx);
 
-            if (currentScreen == SCREEN_SCENE15_2 || currentScreen == SCREEN_TEKKEN_FIGHT) {
+            if (currentScreen == SCREEN_SCENE15_2 || currentScreen == SCREEN_SCENE18_2_1) {
                 PlaySound(battleSfx);
             }
             else if (currentScreen == SCREEN_SCENE21_2_1 || currentScreen == SCREEN_SCENE18_2_2) {
                 PlaySound(clappingSfx);
+            }
+
+            // Switch background music when entering screens directly without fade.
+            Music *wantedMusic = activeMusic;
+            if (currentScreen == SCREEN_TEKKEN_FIGHT) {
+                wantedMusic = &duelMusic;
+            } else if (currentScreen == SCREEN_GAMEPLAY || currentScreen == SCREEN_GAMEPLAY2) {
+                wantedMusic = &inGameMusic;
+            } else if (IsStorySceneScreen(currentScreen)) {
+                wantedMusic = &storyMusic;
+            } else if (currentScreen == SCREEN_MENU) {
+                wantedMusic = &menuMusic;
+            }
+
+            if (!fadeOutMusic && wantedMusic != NULL && wantedMusic != activeMusic) {
+                if (activeMusic != NULL) {
+                    StopMusicStream(*activeMusic);
+                }
+                activeMusic = wantedMusic;
+                SetMusicVolume(*activeMusic, musicVolume);
+                PlayMusicStream(*activeMusic);
             }
 
             previousScreen = currentScreen;
@@ -617,7 +334,9 @@ int main(void) {
 
                 if (IsStorySceneScreen(currentScreen)) {
                     activeMusic = &storyMusic;
-                } else if (IsGameplayScreen(currentScreen)) {
+                } else if (currentScreen == SCREEN_TEKKEN_FIGHT) {
+                    activeMusic = &duelMusic;
+                } else if (currentScreen == SCREEN_GAMEPLAY || currentScreen == SCREEN_GAMEPLAY2) {
                     activeMusic = &inGameMusic;
                 } else if (currentScreen == SCREEN_MENU) {
                     activeMusic = &menuMusic;
@@ -645,6 +364,7 @@ int main(void) {
                     menuMusic = LoadMusicStream("music/MainMenu.ogg");
                     storyMusic = LoadMusicStream("music/Story.ogg");
                     inGameMusic = LoadMusicStream("music/ingame.ogg");
+                    duelMusic = LoadMusicStream("music/duel.mp3");
                     pressButtonSfx = LoadSound("audio/Sfx/press_button.mp3");
                     loseSfx = LoadSound("audio/Sfx/lose.mp3");
                     winSfx = LoadSound("audio/Sfx/find_objective.mp3");
@@ -652,6 +372,7 @@ int main(void) {
                     clappingSfx = LoadSound("audio/Sfx/clapping.mp3");
                     heartPickSfx = LoadSound("audio/Sfx/heartpick.mp3");
                     speedSfx = LoadSound("audio/Sfx/speedpick.mp3");
+                    LoadBattleSfx();
                     sfxLoaded = true;
                     loadProgress = 0.06f;
                     loadStep++;
@@ -831,6 +552,11 @@ int main(void) {
                         tekkenTimer = 99.0f;
                         tekkenEndDelay = 0.0f;
                         showTekkenControls = true;
+                        tekkenLoseSfxPlayed = false;
+                        tekkenWinSfxPlayed = false;
+                        tekkenShowResultOverlay = false;
+                        tekkenFinalWin = false;
+                        ResetBattleSfxQueue();
                         currentScreen = SCREEN_TEKKEN_FIGHT; 
                     }
                 }
@@ -860,6 +586,11 @@ int main(void) {
                         tekkenTimer = 99.0f;
                         tekkenEndDelay = 0.0f;
                         showTekkenControls = true;
+                        tekkenLoseSfxPlayed = false;
+                        tekkenWinSfxPlayed = false;
+                        tekkenShowResultOverlay = false;
+                        tekkenFinalWin = false;
+                        ResetBattleSfxQueue();
                         currentScreen = SCREEN_TEKKEN_FIGHT; 
                     }
                 }
@@ -900,33 +631,76 @@ int main(void) {
                     showTekkenControls = false; // Dismiss pop-up and start fight
                 }
             } else {
-                if (IsKeyPressed(KEY_M) || IsKeyPressed(KEY_ESCAPE)) {
+                bool tekkenTimeOver = tekkenTimer <= 0.0f;
+                bool tekkenPlayerWon = (enemyTekken.health <= 0) ||
+                    (tekkenTimeOver && playerTekken.health > enemyTekken.health);
+                bool tekkenPlayerLost = (playerTekken.health <= 0) ||
+                    (tekkenTimeOver && playerTekken.health <= enemyTekken.health);
+                bool tekkenFightOver = tekkenPlayerWon || tekkenPlayerLost;
+
+                if (tekkenShowResultOverlay && tekkenPlayerLost && IsKeyPressed(KEY_R)) {
+                    int enemyType = (currentTekkenFight == 1) ? 1 : 2;
+                    InitCharacter(&playerTekken, (Vector2){ 250, 100 }, 0);
+                    InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, enemyType);
+                    tekkenTimer = 99.0f;
+                    tekkenEndDelay = 0.0f;
+                    tekkenLoseSfxPlayed = false;
+                    tekkenWinSfxPlayed = false;
+                    tekkenShowResultOverlay = false;
+                    tekkenFinalWin = false;
+                    showTekkenControls = true;
+                    ResetBattleSfxQueue();
+                    StopSound(loseSfx);
+                    StopSound(winSfx);
+                    activeMusic = &duelMusic;
+                    SetMusicVolume(*activeMusic, musicVolume);
+                    PlayMusicStream(*activeMusic);
+                } else if (IsKeyPressed(KEY_M) || IsKeyPressed(KEY_ESCAPE)) {
                     pausedFromScreen = currentScreen;
                     currentScreen = SCREEN_PAUSE;
                     menu.subSelected = 0;
-                } else {
+                } else if (!tekkenFightOver) {
                     float dt = GetFrameTime();
                     if (tekkenTimer > 0 && playerTekken.health > 0 && enemyTekken.health > 0) {
                         tekkenTimer -= dt;
+                        if (tekkenTimer < 0.0f) tekkenTimer = 0.0f;
                     }
 
-                    UpdateCharacter(&playerTekken, &enemyTekken, dt, true);
-                    UpdateCharacter(&enemyTekken, &playerTekken, dt, false);
+                    int enemyTekkenType = (currentTekkenFight == 1) ? 1 : 2;
+                    UpdateCharacterWithSfx(&playerTekken, &enemyTekken, dt, true, 0, enemyTekkenType);
+                    UpdateCharacterWithSfx(&enemyTekken, &playerTekken, dt, false, enemyTekkenType, 0);
+                    ResolveFighterOverlap(&playerTekken, &enemyTekken);
+                } else {
+                    float dt = GetFrameTime();
+                    bool endSequenceFinished = UpdateBattleEndSequence(&playerTekken, &enemyTekken, dt);
 
-                    if (playerTekken.state == STATE_DEAD || enemyTekken.state == STATE_DEAD || tekkenTimer <= 0) {
+                    if (endSequenceFinished && !tekkenShowResultOverlay) {
+                        tekkenFinalWin = tekkenPlayerWon;
+                        tekkenShowResultOverlay = true;
+                        tekkenEndDelay = 0.0f;
+
+                        if (tekkenPlayerLost && !tekkenLoseSfxPlayed) {
+                            tekkenLoseSfxPlayed = true;
+                            tekkenWinSfxPlayed = false;
+                            StopMusicStream(duelMusic);
+                            PlaySound(loseSfx);
+                        }
+
+                        if (tekkenPlayerWon && !tekkenWinSfxPlayed) {
+                            tekkenWinSfxPlayed = true;
+                            tekkenLoseSfxPlayed = false;
+                            PlaySound(winSfx);
+                        }
+                    }
+
+                    if (tekkenShowResultOverlay && tekkenFinalWin) {
                         tekkenEndDelay += dt;
-                        if (tekkenEndDelay > 3.0f && !fadeOutMusic) { 
+                        if (tekkenEndDelay > 3.0f && !fadeOutMusic) {
                             fadeOutMusic = true;
-                            if (enemyTekken.health <= 0 || (tekkenTimer <= 0 && playerTekken.health > enemyTekken.health)) {
-                                // Decide next screen based on which fight it was
-                                if (currentTekkenFight == 1) {
-                                    nextScreenAfterFade = SCREEN_SCENE17_2; 
-                                } else {
-                                    // --- NEW: Fight 2 routes to 20_2_1 instead of 19_2_1 ---
-                                    nextScreenAfterFade = SCREEN_SCENE20_2_1;
-                                }
+                            if (currentTekkenFight == 1) {
+                                nextScreenAfterFade = SCREEN_SCENE17_2;
                             } else {
-                                nextScreenAfterFade = SCREEN_MENU; 
+                                nextScreenAfterFade = SCREEN_SCENE20_2_1;
                             }
                         }
                     }
@@ -1036,7 +810,7 @@ render_phase:
 
                 DrawCharacter(&playerTekken);
                 DrawCharacter(&enemyTekken);
-                DrawGameUI(playerTekken.health, enemyTekken.health, (int)tekkenTimer, vWidth);
+                DrawGameUI(playerTekken.health, enemyTekken.health, (int)tekkenTimer, vWidth, vHeight);
                 
                 // Draw Controls UI
                 DrawText("A/D to Walk | L-SHIFT to Run | S to Shield | SPACE to Jump", 20, vHeight - 60, 20, RAYWHITE);
@@ -1066,6 +840,14 @@ render_phase:
                     DrawRectangleRec(okButton, btnColor);
                     DrawRectangleLinesEx(okButton, 2, WHITE);
                     DrawText("FIGHT", (int)okButton.x + 30, (int)okButton.y + 15, 20, BLACK);
+                }
+
+                if (!showTekkenControls) {
+                    if (tekkenShowResultOverlay && tekkenFinalWin) {
+                        DrawBattleWinOverlay(vWidth, vHeight);
+                    } else if (tekkenShowResultOverlay && !tekkenFinalWin) {
+                        DrawBattleDeathOverlay(vWidth, vHeight);
+                    }
                 }
             }
             // ---------------------------------------
@@ -1154,7 +936,9 @@ cleanup:
     UnloadMusicStream(menuMusic);
     UnloadMusicStream(storyMusic);
     UnloadMusicStream(inGameMusic);
+    UnloadMusicStream(duelMusic);
 
+    UnloadBattleSfx();
     UnloadEnemyAttackSfx();
     UnloadSound(pressButtonSfx);
     UnloadSound(loseSfx);

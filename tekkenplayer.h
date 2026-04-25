@@ -47,6 +47,6 @@ typedef struct {
 void InitCharacter(Character* c, Vector2 startPos, int charType);
 void UpdateCharacter(Character* c, Character* opponent, float dt, bool isPlayer);
 void DrawCharacter(Character* c);
-void DrawGameUI(int playerHealth, int enemyHealth, int timeRemaining, int screenWidth);
+void DrawGameUI(int playerHealth, int enemyHealth, int timeRemaining, int screenWidth, int screenHeight);
 
 #endif // TEKKENPLAYER_H

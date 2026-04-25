@@ -269,7 +269,7 @@ endif
 
 # Source files
 # Add every .c file here
-OBJS = main.c tilemap.c
+OBJS = main.c tilemap.c battle.c
 
 # For Android platform we call a custom Makefile.Android
 ifeq ($(PLATFORM),PLATFORM_ANDROID)
