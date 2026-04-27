@@ -483,6 +483,21 @@ int main(void) {
                 int slot = action - 10;
                 GameSaveData data;
                 if (LoadGameData(slot, &data)) {
+                    
+                    // FIX 1: Reset all scenes so they don't auto-skip after loading
+                    ResetAllScenes(
+                        &scene1, &scene1_data, &scene2, &scene2_data, &scene3, &scene3_data,
+                        &scene4, &scene4_data, &scene5, &scene5_data, &scene6, &scene6_data,
+                        &scene7, &scene7_data, &scene8, &scene8_data, &scene9, &scene9_data,
+                        &scene10, &scene10_data, &scene11, &scene11_data, &scene12, &scene12_data,
+                        &scene13_1, &scene13_1_data, &scene14_1, &scene14_1_data,
+                        &scene13_2, &scene13_2_data, &scene14_2, &scene14_2_data,
+                        &scene15_2, &scene15_2_data, &scene16_2, &scene16_2_data,
+                        &scene17_2, &scene17_2_data, &scene18_2_1, &scene18_2_1_data,
+                        &scene19_2_1, &scene19_2_1_data, &scene20_2_1, &scene20_2_1_data,
+                        &scene21_2_1, &scene21_2_1_data, &scene18_2_2, &scene18_2_2_data
+                    );
+
                     GameplayState *targetState = &gameState1;
                     if ((GameScreen)data.savedScreen == SCREEN_GAMEPLAY2) {
                         targetState = &gameState2;
@@ -719,22 +734,29 @@ int main(void) {
             int action = UpdateSaveMenu(&menu, vMouse, vWidth, vHeight);
             if (action == 1) currentScreen = SCREEN_PAUSE;
             if (action >= 20 && action <= 23) {
-                int slot = action - 20;
-                GameSaveData data = { 0 };
-                strcpy(data.name, menu.saveInput);
+                
+                // FIX 2: Block saving during Tekken fights to prevent state corruption
+                if (pausedFromScreen == SCREEN_TEKKEN_FIGHT) {
+                    // It just returns to pause menu if they try to save here
+                    currentScreen = SCREEN_PAUSE; 
+                } else {
+                    int slot = action - 20;
+                    GameSaveData data = { 0 };
+                    strcpy(data.name, menu.saveInput);
 
-                GameplayState *stateToSave = &gameState1;
-                if (IsGameplayScreen(pausedFromScreen)) {
-                    stateToSave = GetGameplayStateForScreen(pausedFromScreen, &gameState1, &gameState2);
+                    GameplayState *stateToSave = &gameState1;
+                    if (IsGameplayScreen(pausedFromScreen)) {
+                        stateToSave = GetGameplayStateForScreen(pausedFromScreen, &gameState1, &gameState2);
+                    }
+
+                    data.playerPos = stateToSave->player.pos;
+                    data.health = stateToSave->player.health;
+                    data.energy = stateToSave->player.energy;
+                    data.savedScreen = (int)pausedFromScreen;
+
+                    SaveGameData(slot, data);
+                    currentScreen = SCREEN_PAUSE;
                 }
-
-                data.playerPos = stateToSave->player.pos;
-                data.health = stateToSave->player.health;
-                data.energy = stateToSave->player.energy;
-                data.savedScreen = (int)pausedFromScreen;
-
-                SaveGameData(slot, data);
-                currentScreen = SCREEN_PAUSE;
             }
         }
 
