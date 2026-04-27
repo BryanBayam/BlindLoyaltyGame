@@ -322,12 +322,10 @@ static void QueueReactionAnimationWithSfx(Character *character, CharState state,
 }
 
 static void PlayWalkSfxIfNeeded(CharState previousState, CharState currentState, int charType) {
-    if (charType != 0) return;
-    bool wasWalking = previousState == STATE_WALK || previousState == STATE_RUN;
-    bool isWalking = currentState == STATE_WALK || currentState == STATE_RUN;
-    if (!wasWalking && isWalking && !IsSoundPlaying(gReubenWalkSfx)) {
-        PlaySound(gReubenWalkSfx);
-    }
+    (void)previousState;
+    (void)currentState;
+    (void)charType;
+    // Walking SFX disabled.
 }
 
 // charType: 0 = Player, 1 = Samurai, 2 = Viking
@@ -340,7 +338,7 @@ void InitCharacter(Character* c, Vector2 startPos, int charType) {
     c->isGrounded = false;
     c->health = 100;
     c->aiTimer = 0.0f;
-    c->hasHealed = false; // <-- Added this to reset the heal ability
+    c->hasHealed = false; // Heal ability removed; kept only because Character still has this field.
     
     // Switch load paths
     const char* basePath = "";
@@ -538,7 +536,7 @@ void UpdateCharacterWithSfx(Character* c, Character* opponent, float dt, bool is
                     int defenseRoll = GetRandomValue(1, 100);
                     if (defenseRoll <= 32) {
                         dodgedByJump = true;
-                    } else if (defenseRoll <= 68) {
+                    } else if (defenseRoll <= 55) {
                         blocked = true;
                     }
                 }
@@ -571,22 +569,11 @@ void UpdateCharacterWithSfx(Character* c, Character* opponent, float dt, bool is
 
         c->aiTimer -= dt;
 
-        // --- AI FEATURE: Flee under 20% health, hit border, and heal once ---
-        if (c->health < 20 && !c->hasHealed) {
-            c->facingRight = (opponent->position.x < c->position.x); // Face away from player
-            float moveDir = (opponent->position.x > c->position.x) ? -1.0f : 1.0f;
-            c->position.x += moveDir * 320.0f * dt; // Run away quickly
-            if (c->isGrounded) c->state = STATE_RUN;
-
-            if (c->position.x <= 55.0f || c->position.x >= 1225.0f) {
-                c->health += 40;
-                if (c->health > 100) c->health = 100;
-                c->hasHealed = true;
-            }
-        }
+        // Enemy heal ability removed.
+        // Enemies no longer recover health when low.
         // Enemy spacing is less frequent now: it only backs away sometimes during Reuben's pressure.
         // If Reuben does not attack for about 1 second, this timer reaches 0 and the enemy chases again.
-        else if (gPlayerAttackPressureTimer > 0.0f && distanceToPlayer < 220.0f &&
+        if (gPlayerAttackPressureTimer > 0.0f && distanceToPlayer < 220.0f &&
                  c->aiTimer <= 0.0f && GetRandomValue(1, 100) <= ENEMY_SPACING_CHANCE) {
             MoveAwayFromOpponent(c, opponent, 185.0f, dt);
             if (c->isGrounded) c->state = STATE_WALK;
