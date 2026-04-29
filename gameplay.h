@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include <stdbool.h>
 
+// Includes all the components needed for a level
 #include "tilemap.h"
 #include "character.h"
 #include "enemy.h"
@@ -16,16 +17,17 @@
 #include "objective.h"
 #include "menu.h"
 
-#define PLAYER_HISTORY_SIZE 900
+#define PLAYER_HISTORY_SIZE 900 // Tracks the player's path for AI or effects
 
+// Configuration for a specific level (e.g., Level 1 vs Level 2)
 typedef struct GameplayConfig {
-    bool useSecurityTheme;
-    const char *avoidEnemyText;
-    const char *regularSpawnText;
-    const char *bossSpawnText;
+    bool useSecurityTheme;         // True if using guards instead of bandits
+    const char *avoidEnemyText;     // Text for instructions (e.g. "AVOID BANDITS")
+    const char *regularSpawnText;   // Text for arrival countdown
+    const char *bossSpawnText;      // Text for boss arrival
 } GameplayConfig;
 
-// We bundle all gameplay variables into one clean state struct
+// The "Big Container" for everything happening in a level
 typedef struct {
     Tilemap map;
     Player player;
@@ -44,10 +46,10 @@ typedef struct {
     bool showInstructions;
     bool loseSfxPlayed;
     bool winSfxPlayed;
-    const GameplayConfig *config;
+    const GameplayConfig *config; // Points to the specific level settings
 } GameplayState;
 
-// Declarations
+// Functions to manage the level
 void DrawDeathOverlay(int vWidth, int vHeight);
 void DrawWinOverlay(const GameplayState *state, int vWidth, int vHeight);
 void DrawInstructionsOverlay(const GameplayState *state, int vWidth, int vHeight);
@@ -56,6 +58,7 @@ void DrawGameplay(GameplayState *state, int vWidth, int vHeight);
 
 #ifdef GAMEPLAY_IMPLEMENTATION
 
+// Helper functions to get level-specific text or paths
 static bool GameplayUsesSecurityTheme(const GameplayState *state) {
     return state->config != NULL && state->config->useSecurityTheme;
 }
@@ -102,12 +105,14 @@ static const char *GameplayObjectiveAppearText(const GameplayState *state) {
     return "Key will appear in 10 seconds.";
 }
 
+// Visual screen when the player dies
 void DrawDeathOverlay(int vWidth, int vHeight) {
     DrawRectangle(0, 0, vWidth, vHeight, Fade(BLACK, 0.70f));
     DrawText("YOU DIED", (vWidth - MeasureText("YOU DIED", 64)) / 2, vHeight / 2 - 60, 64, RED);
     DrawText("Press R to Restart", (vWidth - MeasureText("Press R to Restart", 28)) / 2, vHeight / 2 + 20, 28, MAROON);
 }
 
+// Visual screen when the player wins
 void DrawWinOverlay(const GameplayState *state, int vWidth, int vHeight) {
     const char *objectiveName = GameplayObjectiveName(state);
     const char *message = GameplayUsesSecurityTheme(state) ? "You found the document!" : "You found the key!";
@@ -118,6 +123,7 @@ void DrawWinOverlay(const GameplayState *state, int vWidth, int vHeight) {
     (void)objectiveName;
 }
 
+// The "How to Play" screen shown at the start of a level
 void DrawInstructionsOverlay(const GameplayState *state, int vWidth, int vHeight) {
     Rectangle panel = { vWidth * 0.18f, vHeight * 0.14f, vWidth * 0.64f, vHeight * 0.58f };
 
@@ -141,41 +147,41 @@ void DrawInstructionsOverlay(const GameplayState *state, int vWidth, int vHeight
     DrawText("Press any key or click to begin", x, y, 28, GREEN);
 }
 
+// Resets everything to start a level fresh
 void ResetGameplay(GameplayState *state) {
     UnloadPlayer(&state->player);
     InitPlayer(&state->player, FindWalkableSpawn(&state->map));
     state->player.isDead = false;
 
+    // Set up regular enemies based on theme
     for (int i = 0; i < MAX_REGULAR_ENEMIES; i++) {
         UnloadEnemy(&state->regularBandits[i]);
-
         if (GameplayUsesSecurityTheme(state)) {
             InitSecurityGuard(&state->regularBandits[i], (Vector2){ 0.0f, 0.0f });
         } else {
             InitBandit(&state->regularBandits[i], (Vector2){ 0.0f, 0.0f });
         }
-
         state->regularBandits[i].active = false;
     }
 
+    // Set up boss based on theme
     UnloadEnemy(&state->bossBandit);
-
     if (GameplayUsesSecurityTheme(state)) {
         InitOasisMediaCEO(&state->bossBandit, (Vector2){ 0.0f, 0.0f });
     } else {
         InitBossBandit(&state->bossBandit, (Vector2){ 0.0f, 0.0f });
     }
-
     state->bossBandit.active = false;
 
+    // Reset player history and camera
     for (int i = 0; i < PLAYER_HISTORY_SIZE; i++) {
         state->playerHistory[i] = state->player.pos;
     }
-
     state->historyIndex = 0;
     InitEnemySpawner(&state->enemySpawner, GameplayUsesSecurityTheme(state));
     state->camera.target = state->player.pos;
 
+    // Load objective textures (Key or Document)
     if (state->key.texture.id > 0) {
         UnloadTexture(state->key.texture);
     }
@@ -190,9 +196,11 @@ void ResetGameplay(GameplayState *state) {
     state->winSfxPlayed = false;
 }
 
+// The main loop for Level update logic
 void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound winSfx, Sound heartPickSfx, Sound speedSfx, Music inGameMusic, bool *requestPause, bool *requestNextScene, bool mouseClicked) {
     bool gameplayPaused = state->showInstructions || state->player.isDead || state->gameWon;
 
+    // Dismiss instructions
     if (state->showInstructions && (GetKeyPressed() != 0 || mouseClicked)) state->showInstructions = false;
 
     if (!gameplayPaused) {
@@ -200,9 +208,11 @@ void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound wi
         UpdatePlayer(&state->player, &state->map, keys);
         state->camera.target = state->player.pos;
 
+        // Save position to history
         state->playerHistory[state->historyIndex] = state->player.pos;
         state->historyIndex = (state->historyIndex + 1) % PLAYER_HISTORY_SIZE;
 
+        // Logic for enemies, objectives, and items
         UpdateEnemySpawns(&state->enemySpawner, dt, state->regularBandits, MAX_REGULAR_ENEMIES, &state->bossBandit, &state->map, state->player.pos);
         UpdateKeyLogic(&state->key, dt, &state->map, state->player.pos, &state->gameWon);
         bool pickedHeart = false;
@@ -212,6 +222,7 @@ void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound wi
         if (pickedHeart) PlaySound(heartPickSfx);
         if (pickedSpeed) PlaySound(speedSfx);
 
+        // Update all regular enemies
         for (int i = 0; i < MAX_REGULAR_ENEMIES; i++) {
             if (GameplayUsesSecurityTheme(state)) {
                 UpdateSecurityGuard(&state->regularBandits[i], state->regularBandits, MAX_REGULAR_ENEMIES, &state->player, &state->map);
@@ -220,17 +231,20 @@ void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound wi
             }
         }
 
+        // Update Boss
         if (GameplayUsesSecurityTheme(state)) {
             UpdateOasisMediaCEO(&state->bossBandit, state->regularBandits, MAX_REGULAR_ENEMIES, &state->player, &state->map);
         } else {
             UpdateBossBandit(&state->bossBandit, state->regularBandits, MAX_REGULAR_ENEMIES, &state->player, &state->map);
         }
 
+        // Handle pause request
         if (IsKeyPressed(KEY_M) || IsKeyPressed(KEY_ESCAPE)) {
             *requestPause = true;
         }
     }
 
+    // Audio cues for Game Over
     if (state->player.isDead && !state->loseSfxPlayed) {
         state->loseSfxPlayed = true;
         state->winSfxPlayed = false;
@@ -238,6 +252,7 @@ void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound wi
         PlaySound(loseSfx);
     }
 
+    // Progression cue for Win
     if (state->gameWon && !state->winSfxPlayed) {
         state->winSfxPlayed = true;
         state->loseSfxPlayed = false;
@@ -245,6 +260,7 @@ void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound wi
         *requestNextScene = true;
     }
 
+    // Restart level
     if (state->player.isDead && IsKeyPressed(KEY_R)) {
         ResetGameplay(state);
         StopSound(loseSfx);
@@ -254,8 +270,9 @@ void UpdateGameplay(GameplayState *state, Keybinds keys, Sound loseSfx, Sound wi
     }
 }
 
+// Drawing function for Top-Down exploration
 void DrawGameplay(GameplayState *state, int vWidth, int vHeight) {
-    BeginMode2D(state->camera);
+    BeginMode2D(state->camera); // Start drawing relative to the camera
         DrawTilemapAll(&state->map);
         DrawKey(&state->key);
         for (int i = 0; i < HEART_COUNT; i++) DrawPickup(&state->hearts[i]);
@@ -263,11 +280,12 @@ void DrawGameplay(GameplayState *state, int vWidth, int vHeight) {
         for (int i = 0; i < MAX_REGULAR_ENEMIES; i++) DrawEnemy(&state->regularBandits[i]);
         DrawEnemy(&state->bossBandit);
         DrawPlayer(&state->player);
-    EndMode2D();
+    EndMode2D(); // End camera drawing
 
     DrawPlayerUI(&state->player);
     DrawText("PRESS M TO PAUSE", 10, vHeight - 30, 20, RAYWHITE);
 
+    // Show arrival text/timers on screen
     if (!state->showInstructions && !state->player.isDead && !state->gameWon) {
         if (!state->enemySpawner.initialRegularsSpawned) {
             DrawText(GameplayRegularSpawnText(state), 10, vHeight - 90, 20, RED);
@@ -280,10 +298,11 @@ void DrawGameplay(GameplayState *state, int vWidth, int vHeight) {
         }
     }
 
+    // Draw full-screen UI overlays
     if (state->showInstructions) DrawInstructionsOverlay(state, vWidth, vHeight);
     if (state->player.isDead) DrawDeathOverlay(vWidth, vHeight);
     if (state->gameWon) DrawWinOverlay(state, vWidth, vHeight);
 }
 
-#endif // GAMEPLAY_IMPLEMENTATION
-#endif // GAMEPLAY_H
+#endif
+#endif

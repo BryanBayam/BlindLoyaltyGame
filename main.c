@@ -1,64 +1,75 @@
-#include "raylib.h"
-#include <math.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <string.h>
+#include "raylib.h"    // The primary game engine library
+#include <math.h>      // Used for mathematical calculations
+#include <stdbool.h>   // Allows the use of 'true' and 'false'
+#include <stddef.h>    // Standard definitions
+#include <string.h>    // Tools for handling text and strings
 
+// Include all the custom game logic headers you've created
 #include "tilemap.h"
 #include "menu.h"
 #include "character.h"
 #include "story_scene.h"
 
-// INCLUDE BATTLE ENGINE
+// INCLUDE BATTLE ENGINE: Handles the combat logic
 #include "battle.h"
 
+// ENEMY IMPLEMENTATION: Loads the generic enemy systems
 #define ENEMY_IMPLEMENTATION
 #include "enemy.h"
 
+// BANDIT IMPLEMENTATION: Specific logic for the Bandit enemies
 #define BANDIT_IMPLEMENTATION
 #include "bandit.h"
 
+// BOSS BANDIT IMPLEMENTATION: Logic for the first boss
 #define BOSS_BANDIT_IMPLEMENTATION
 #include "boss_bandit.h"
 
+// SECURITY GUARD IMPLEMENTATION: Logic for level 2 guards
 #define SECURITY_GUARD_IMPLEMENTATION
 #include "security_guard.h"
 
+// OASIS MEDIA CEO IMPLEMENTATION: Logic for the final CEO boss
 #define OASIS_MEDIA_CEO_IMPLEMENTATION
 #include "oasis_media_ceo.h"
 
+// ENEMY MANAGER: Coordinates multiple enemies at once
 #define ENEMY_MANAGER_IMPLEMENTATION
 #include "enemy_manager.h"
 
+// PICKUP IMPLEMENTATION: Handles health and speed boosts
 #define PICKUP_IMPLEMENTATION
 #include "pickup.h"
 
+// OBJECTIVE: Tracks what the player needs to do (e.g., find keys)
 #define OBJECTIVE_IMPLEMENTATION
 #include "objective.h"
 
+// GAMEPLAY: The core loop for top-down exploration
 #define GAMEPLAY_IMPLEMENTATION
 #include "gameplay.h"
 
+// GAME STATES: This list tells the game which "Screen" to display
 typedef enum {
-    SCREEN_LOADING,
-    SCREEN_MENU,
-    SCREEN_LOAD_GAME,
-    SCREEN_SETTINGS,
-    SCREEN_SCENE1,
+    SCREEN_LOADING,   // The starting progress bar
+    SCREEN_MENU,      // The title screen
+    SCREEN_LOAD_GAME, // File loading screen
+    SCREEN_SETTINGS,  // Audio and control settings
+    SCREEN_SCENE1,    // Story scenes 1 through 11...
     SCREEN_SCENE2,
     SCREEN_SCENE3,
     SCREEN_SCENE4,
     SCREEN_SCENE5,
     SCREEN_SCENE6,
-    SCREEN_GAMEPLAY,
-    SCREEN_PAUSE,
-    SCREEN_SAVE_GAME,
-    SCREEN_SCENE7,
+    SCREEN_GAMEPLAY,  // The first exploration level
+    SCREEN_PAUSE,     // The pause menu
+    SCREEN_SAVE_GAME, // The save menu
+    SCREEN_SCENE7,    // More story scenes...
     SCREEN_SCENE8,
     SCREEN_SCENE9,
     SCREEN_SCENE10,
     SCREEN_SCENE11,
-    SCREEN_GAMEPLAY2,
+    SCREEN_GAMEPLAY2, // The second exploration level (Security guards)
     SCREEN_SCENE12,
     SCREEN_SCENE13_1,
     SCREEN_SCENE14_1,
@@ -72,18 +83,21 @@ typedef enum {
     SCREEN_SCENE20_2_1,
     SCREEN_SCENE21_2_1,
     SCREEN_SCENE18_2_2,
-    SCREEN_TEKKEN_FIGHT
+    SCREEN_TEKKEN_FIGHT // The side-view fighting minigame
 } GameScreen;
 
+// Constants for character portraits in dialogue
 #define DEFAULT_PORTRAIT_SCALE 0.28f
 #define DEFAULT_PORTRAIT_OFFSET_X 20.0f
 
+// Helper macros to make defining scene portraits easier
 #define PORTRAIT_DEFAULT(name, path) \
     { name, path, DEFAULT_PORTRAIT_SCALE, DEFAULT_PORTRAIT_OFFSET_X }
 
 #define PORTRAIT_CUSTOM(name, path, scaleValue, offsetXValue) \
     { name, path, scaleValue, offsetXValue }
 
+// CONFIGURATIONS: Different settings for Level 1 vs Level 2
 static const GameplayConfig GAMEPLAY1_CONFIG = {
     .useSecurityTheme = false,
     .avoidEnemyText = "BANDITS",
@@ -99,6 +113,7 @@ static const GameplayConfig GAMEPLAY2_CONFIG = {
 };
 
 // --- SCENE DATA DEFINITIONS ---
+// These define the backgrounds, characters, and text for every story moment
 SceneData scene1_data = { .bgPath = "images/Background/Scene/Scene1.png", .bgScrollSpeed = 0.0f, .doFadeIn = false, .doFadeOut = false, .portraitCount = 2, .portraits = { PORTRAIT_DEFAULT("Commander", "images/Character/Commander/CommanderChat.png"), PORTRAIT_DEFAULT("Reuben", "images/Character/Reuben/ReubenChat.png") }, .choiceText = "Yes Commander!", .narratorText = "Before the world called you a hero,\nyou were just a child who believed in order.", .narratorVoicePath = "audio/Voice/Scene 1/Narrator.mp3", };
 SceneData scene2_data = { .bgPath = "images/Background/Scene/Scene2.jpg", .bgScrollSpeed = -15.0f, .doFadeIn = true, .doFadeOut = true, };
 SceneData scene3_data = { .bgPath = "images/Background/Scene/Scene3.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = false, .doFadeOut = false, .narratorText = "And that idea stayed with you...", .narratorVoicePath = "audio/Voice/Scene 3/Narrator part 2.mp3", };
@@ -124,10 +139,12 @@ SceneData scene20_2_1_data = { .bgPath = "images/Background/Scene/Scene20_2_1.jp
 SceneData scene21_2_1_data = { .bgPath = "images/Background/Scene/Scene21_2_1.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
 SceneData scene18_2_2_data = { .bgPath = "images/Background/Scene/Scene18_2_2.jpg", .bgScrollSpeed = 0.0f, .doFadeIn = true, .doFadeOut = true, };
 
+// HELPER: Checks if the current screen is a gameplay level
 static bool IsGameplayScreen(GameScreen screen) {
     return screen == SCREEN_GAMEPLAY || screen == SCREEN_GAMEPLAY2 || screen == SCREEN_TEKKEN_FIGHT;
 }
 
+// HELPER: Checks if the current screen is a story scene
 static bool IsStorySceneScreen(GameScreen screen) {
     switch (screen) {
         case SCREEN_SCENE1: case SCREEN_SCENE2: case SCREEN_SCENE3: case SCREEN_SCENE4:
@@ -142,10 +159,12 @@ static bool IsStorySceneScreen(GameScreen screen) {
     }
 }
 
+// HELPER: Decides which Level configuration to use
 static GameplayState *GetGameplayStateForScreen(GameScreen screen, GameplayState *gameState1, GameplayState *gameState2) {
     return (screen == SCREEN_GAMEPLAY2) ? gameState2 : gameState1;
 }
 
+// HELPER: Prepares a gameplay level with its camera and configuration
 static void SetupGameplayState(GameplayState *state, const GameplayConfig *config, int vWidth, int vHeight) {
     state->config = config;
     state->camera.offset = (Vector2){ vWidth / 2.0f, vHeight / 2.0f };
@@ -154,6 +173,7 @@ static void SetupGameplayState(GameplayState *state, const GameplayConfig *confi
     ResetGameplay(state);
 }
 
+// HELPER: Forces all story scenes back to the beginning
 static void ResetAllScenes(
     StoryScene* s1, SceneData* sd1, StoryScene* s2, SceneData* sd2,
     StoryScene* s3, SceneData* sd3, StoryScene* s4, SceneData* sd4,
@@ -194,20 +214,24 @@ static void ResetAllScenes(
     InitStoryScene(s18_2_2, sd18_2_2);
 }
 
+// THE MAIN FUNCTION: Where the execution begins
 int main(void) {
-    const int vWidth = 1280;
-    const int vHeight = 720;
+    const int vWidth = 1280; // Virtual resolution width
+    const int vHeight = 720; // Virtual resolution height
 
+    // Initialize Raylib system settings
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
     InitWindow(vWidth, vHeight, "Blind Loyalty - C Edition");
     SetAudioStreamBufferSizeDefault(4096);
     InitAudioDevice();
     SetTargetFPS(60);
 
+    // Initial game state
     GameScreen currentScreen = SCREEN_LOADING;
-    int loadStep = 0;
+    int loadStep = 0;       // Tracks progress through the check-list
     float loadProgress = 0.0f;
 
+    // Menu settings (Keys and Volume)
     Menu menu = {
         .masterVolume = 1.0f,
         .musicVolume = 1.0f,
@@ -215,13 +239,14 @@ int main(void) {
         .activeLoadSlot = -1
     };
 
+    // Prepare variables for the levels
     GameplayState gameState1 = { 0 };
     GameplayState gameState2 = { 0 };
     
     // --- TEKKEN MINIGAME VARIABLES ---
     Character playerTekken;
     Character enemyTekken;
-    int currentTekkenFight = 1; // 1 = After 16_2, 2 = After 19_2_1
+    int currentTekkenFight = 1; 
     float tekkenTimer = 99.0f;
     float tekkenEndDelay = 0.0f;
     bool showTekkenControls = false;
@@ -234,6 +259,7 @@ int main(void) {
     Texture2D tekkenBg2 = { 0 };
     // ---------------------------------
 
+    // Pre-declare story scene structures
     StoryScene scene1 = { 0 }; StoryScene scene2 = { 0 }; StoryScene scene3 = { 0 };
     StoryScene scene4 = { 0 }; StoryScene scene5 = { 0 }; StoryScene scene6 = { 0 };
     StoryScene scene7 = { 0 }; StoryScene scene8 = { 0 }; StoryScene scene9 = { 0 };
@@ -243,14 +269,17 @@ int main(void) {
     StoryScene scene17_2 = { 0 }; StoryScene scene18_2_1 = { 0 }; StoryScene scene19_2_1 = { 0 };
     StoryScene scene20_2_1 = { 0 }; StoryScene scene21_2_1 = { 0 }; StoryScene scene18_2_2 = { 0 };
 
+    // Create a virtual canvas to draw on (allows resizing the window)
     RenderTexture2D target = LoadRenderTexture(vWidth, vHeight);
 
+    // Audio streams
     Music menuMusic = { 0 };
     Music storyMusic = { 0 };
     Music inGameMusic = { 0 };
     Music duelMusic = { 0 };
     Music *activeMusic = NULL;
 
+    // Sound effects
     Sound pressButtonSfx = { 0 };
     Sound loseSfx = { 0 };
     Sound winSfx = { 0 };
@@ -267,7 +296,9 @@ int main(void) {
 
     GameScreen pausedFromScreen = SCREEN_MENU;
 
+    // MAIN LOOP: Runs until the player closes the window
     while (!WindowShouldClose()) {
+        // Calculate mouse position relative to the virtual resolution
         Vector2 mouse = GetMousePosition();
         float scale = fminf((float)GetScreenWidth() / vWidth, (float)GetScreenHeight() / vHeight);
         Vector2 vMouse = {
@@ -278,16 +309,19 @@ int main(void) {
         bool mouseClicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
         bool enterPressed = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER);
 
+        // UI Sounds
         if (sfxLoaded && (enterPressed || mouseClicked)) {
             PlaySound(pressButtonSfx);
         }
 
+        // Music Stream Update
         if (activeMusic != NULL && IsMusicStreamPlaying(*activeMusic)) {
             UpdateMusicStream(*activeMusic);
         }
 
         UpdateBattleSfxQueue();
 
+        // Detect screen changes to update background music
         if (currentScreen != previousScreen) {
             StopSound(battleSfx);
             StopSound(clappingSfx);
@@ -299,7 +333,6 @@ int main(void) {
                 PlaySound(clappingSfx);
             }
 
-            // Switch background music when entering screens directly without fade.
             Music *wantedMusic = activeMusic;
             if (currentScreen == SCREEN_TEKKEN_FIGHT) {
                 wantedMusic = &duelMusic;
@@ -323,6 +356,7 @@ int main(void) {
             previousScreen = currentScreen;
         }
 
+        // Handle the smooth fading between different music tracks
         if (fadeOutMusic && activeMusic != NULL) {
             musicVolume -= GetFrameTime();
 
@@ -348,9 +382,10 @@ int main(void) {
             }
 
             SetMusicVolume(*activeMusic, musicVolume);
-            goto render_phase;
+            goto render_phase; // Skip update logic and go straight to drawing
         }
 
+        // SCREEN LOADING: This step-by-step logic loads files into memory
         if (currentScreen == SCREEN_LOADING) {
             switch (loadStep) {
                 case 0:
@@ -395,9 +430,8 @@ int main(void) {
                     
                     LoadTilemap(&tekkenMap, "images/Background/Arena/arena1/arena1.json"); 
                     
-                    // PRELOAD TEKKEN CHARACTERS (Default for Fight 1)
                     InitCharacter(&playerTekken, (Vector2){ 250, 100 }, 0);
-                    InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, 1); // Samurai
+                    InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, 1); 
 
                     loadProgress = 0.16f;
                     loadStep++;
@@ -410,6 +444,7 @@ int main(void) {
                     loadStep++;
                     break;
 
+                // Load all story scene text files
                 case 3: LoadSceneDialogue("data/scene1.txt", &scene1_data); InitStoryScene(&scene1, &scene1_data); loadProgress = 0.30f; loadStep++; break;
                 case 4: LoadSceneDialogue("data/scene2.txt", &scene2_data); InitStoryScene(&scene2, &scene2_data); loadProgress = 0.34f; loadStep++; break;
                 case 5: LoadSceneDialogue("data/scene3.txt", &scene3_data); InitStoryScene(&scene3, &scene3_data); loadProgress = 0.38f; loadStep++; break;
@@ -439,13 +474,13 @@ int main(void) {
                     activeMusic = &menuMusic;
                     SetMusicVolume(*activeMusic, 1.0f);
                     PlayMusicStream(*activeMusic);
-                    currentScreen = SCREEN_MENU;
+                    currentScreen = SCREEN_MENU; // Transition to menu once done
                     break;
             }
         }
         else if (currentScreen == SCREEN_MENU) {
             int action = UpdateMenu(&menu, vMouse, vWidth, vHeight);
-            if (action == 1) {
+            if (action == 1) { // New Game
                 ResetAllScenes(
                     &scene1, &scene1_data, &scene2, &scene2_data, &scene3, &scene3_data,
                     &scene4, &scene4_data, &scene5, &scene5_data, &scene6, &scene6_data,
@@ -461,18 +496,18 @@ int main(void) {
                 fadeOutMusic = true;
                 nextScreenAfterFade = SCREEN_SCENE1;
             }
-            if (action == 2) {
+            if (action == 2) { // Load Game
                 RefreshSaveSlots(&menu);
                 currentScreen = SCREEN_LOAD_GAME;
                 menu.subSelected = 0;
                 menu.activeLoadSlot = -1;
             }
-            if (action == 3) {
+            if (action == 3) { // Settings
                 pausedFromScreen = SCREEN_MENU;
                 currentScreen = SCREEN_SETTINGS;
                 menu.subSelected = 0;
             }
-            if (action == 4) {
+            if (action == 4) { // Exit
                 break;
             }
         }
@@ -483,8 +518,7 @@ int main(void) {
                 int slot = action - 10;
                 GameSaveData data;
                 if (LoadGameData(slot, &data)) {
-                    
-                    // FIX 1: Reset all scenes so they don't auto-skip after loading
+                    // Reset scenes to avoid logical conflicts when loading an old save
                     ResetAllScenes(
                         &scene1, &scene1_data, &scene2, &scene2_data, &scene3, &scene3_data,
                         &scene4, &scene4_data, &scene5, &scene5_data, &scene6, &scene6_data,
@@ -527,6 +561,7 @@ int main(void) {
                 currentScreen = SCREEN_PAUSE;
                 menu.subSelected = 0;
             } else {
+                // Large 'else if' block handles progression from one scene to the next
                 if (currentScreen == SCREEN_SCENE1) { UpdateStoryScene(&scene1, vMouse, mouseClicked, vWidth); if (scene1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE2; }
                 else if (currentScreen == SCREEN_SCENE2) { UpdateStoryScene(&scene2, vMouse, mouseClicked, vWidth); if (scene2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE3; }
                 else if (currentScreen == SCREEN_SCENE3) { UpdateStoryScene(&scene3, vMouse, mouseClicked, vWidth); if (scene3.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE4; }
@@ -557,13 +592,13 @@ int main(void) {
                 else if (currentScreen == SCREEN_SCENE14_2) { UpdateStoryScene(&scene14_2, vMouse, mouseClicked, vWidth); if (scene14_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE15_2; }
                 else if (currentScreen == SCREEN_SCENE15_2) { UpdateStoryScene(&scene15_2, vMouse, mouseClicked, vWidth); if (scene15_2.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE16_2; }
                 
-                // --------- LAUNCH TEKKEN FIGHT 1 AFTER SCENE 16_2 ---------
+                // LAUNCH TEKKEN FIGHT 1
                 else if (currentScreen == SCREEN_SCENE16_2) {
                     UpdateStoryScene(&scene16_2, vMouse, mouseClicked, vWidth);
                     if (scene16_2.currentState == SCENE_STATE_DONE) {
                         currentTekkenFight = 1;
-                        InitCharacter(&playerTekken, (Vector2){ 250, 100 }, 0); // Player
-                        InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, 1); // Samurai
+                        InitCharacter(&playerTekken, (Vector2){ 250, 100 }, 0); 
+                        InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, 1); 
                         tekkenTimer = 99.0f;
                         tekkenEndDelay = 0.0f;
                         showTekkenControls = true;
@@ -575,7 +610,6 @@ int main(void) {
                         currentScreen = SCREEN_TEKKEN_FIGHT; 
                     }
                 }
-                // -----------------------------------------------------------
                 
                 else if (currentScreen == SCREEN_SCENE17_2) {
                     UpdateStoryScene(&scene17_2, vMouse, mouseClicked, vWidth);
@@ -585,19 +619,18 @@ int main(void) {
                     }
                 }
                 
-                // --- NEW: Scene 18_2_1 just proceeds normally to 19_2_1 ---
                 else if (currentScreen == SCREEN_SCENE18_2_1) { 
                     UpdateStoryScene(&scene18_2_1, vMouse, mouseClicked, vWidth); 
                     if (scene18_2_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE19_2_1; 
                 }
                 
-                // --------- LAUNCH TEKKEN FIGHT 2 AFTER SCENE 19_2_1 ---------
+                // LAUNCH TEKKEN FIGHT 2
                 else if (currentScreen == SCREEN_SCENE19_2_1) {
                     UpdateStoryScene(&scene19_2_1, vMouse, mouseClicked, vWidth);
                     if (scene19_2_1.currentState == SCENE_STATE_DONE) {
                         currentTekkenFight = 2;
-                        InitCharacter(&playerTekken, (Vector2){ 250, 100 }, 0); // Player
-                        InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, 2); // Viking
+                        InitCharacter(&playerTekken, (Vector2){ 250, 100 }, 0); 
+                        InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, 2); 
                         tekkenTimer = 99.0f;
                         tekkenEndDelay = 0.0f;
                         showTekkenControls = true;
@@ -609,7 +642,6 @@ int main(void) {
                         currentScreen = SCREEN_TEKKEN_FIGHT; 
                     }
                 }
-                // -----------------------------------------------------------
 
                 else if (currentScreen == SCREEN_SCENE20_2_1) { UpdateStoryScene(&scene20_2_1, vMouse, mouseClicked, vWidth); if (scene20_2_1.currentState == SCENE_STATE_DONE) currentScreen = SCREEN_SCENE21_2_1; }
                 else if (currentScreen == SCREEN_SCENE21_2_1) {
@@ -637,23 +669,22 @@ int main(void) {
             if (requestNextScene) { fadeOutMusic = true; nextScreenAfterFade = SCREEN_SCENE12; }
         }
         
-        // --------- TEKKEN UPDATE LOOP ---------
+        // TEKKEN FIGHT UPDATE: Side-view combat logic
         else if (currentScreen == SCREEN_TEKKEN_FIGHT) {
             if (showTekkenControls) {
-                // Check if OK button is clicked (updated bounds for the bigger UI)
+                // Controls pop-up button
                 Rectangle okButton = { (vWidth / 2.0f) - 60, (vHeight / 2.0f) + 110, 120, 50 };
                 if (CheckCollisionPointRec(vMouse, okButton) && mouseClicked) {
-                    showTekkenControls = false; // Dismiss pop-up and start fight
+                    showTekkenControls = false; 
                 }
             } else {
                 bool tekkenTimeOver = tekkenTimer <= 0.0f;
-                bool tekkenPlayerWon = (enemyTekken.health <= 0) ||
-                    (tekkenTimeOver && playerTekken.health > enemyTekken.health);
-                bool tekkenPlayerLost = (playerTekken.health <= 0) ||
-                    (tekkenTimeOver && playerTekken.health <= enemyTekken.health);
+                bool tekkenPlayerWon = (enemyTekken.health <= 0) || (tekkenTimeOver && playerTekken.health > enemyTekken.health);
+                bool tekkenPlayerLost = (playerTekken.health <= 0) || (tekkenTimeOver && playerTekken.health <= enemyTekken.health);
                 bool tekkenFightOver = tekkenPlayerWon || tekkenPlayerLost;
 
                 if (tekkenShowResultOverlay && tekkenPlayerLost && IsKeyPressed(KEY_R)) {
+                    // Retry fight logic
                     int enemyType = (currentTekkenFight == 1) ? 1 : 2;
                     InitCharacter(&playerTekken, (Vector2){ 250, 100 }, 0);
                     InitCharacter(&enemyTekken, (Vector2){ 850, 100 }, enemyType);
@@ -686,6 +717,7 @@ int main(void) {
                     UpdateCharacterWithSfx(&enemyTekken, &playerTekken, dt, false, enemyTekkenType, 0);
                     ResolveFighterOverlap(&playerTekken, &enemyTekken);
                 } else {
+                    // Sequence once the fight ends
                     float dt = GetFrameTime();
                     bool endSequenceFinished = UpdateBattleEndSequence(&playerTekken, &enemyTekken, dt);
 
@@ -696,14 +728,11 @@ int main(void) {
 
                         if (tekkenPlayerLost && !tekkenLoseSfxPlayed) {
                             tekkenLoseSfxPlayed = true;
-                            tekkenWinSfxPlayed = false;
                             StopMusicStream(duelMusic);
                             PlaySound(loseSfx);
                         }
-
                         if (tekkenPlayerWon && !tekkenWinSfxPlayed) {
                             tekkenWinSfxPlayed = true;
-                            tekkenLoseSfxPlayed = false;
                             PlaySound(winSfx);
                         }
                     }
@@ -712,17 +741,12 @@ int main(void) {
                         tekkenEndDelay += dt;
                         if (tekkenEndDelay > 3.0f && !fadeOutMusic) {
                             fadeOutMusic = true;
-                            if (currentTekkenFight == 1) {
-                                nextScreenAfterFade = SCREEN_SCENE17_2;
-                            } else {
-                                nextScreenAfterFade = SCREEN_SCENE20_2_1;
-                            }
+                            nextScreenAfterFade = (currentTekkenFight == 1) ? SCREEN_SCENE17_2 : SCREEN_SCENE20_2_1;
                         }
                     }
                 }
             }
         }
-        // ----------------------------------------
         else if (currentScreen == SCREEN_PAUSE) {
             int action = UpdatePauseMenu(&menu, vMouse, vWidth, vHeight);
             if (action == 1) currentScreen = pausedFromScreen;
@@ -734,10 +758,8 @@ int main(void) {
             int action = UpdateSaveMenu(&menu, vMouse, vWidth, vHeight);
             if (action == 1) currentScreen = SCREEN_PAUSE;
             if (action >= 20 && action <= 23) {
-                
-                // FIX 2: Block saving during Tekken fights to prevent state corruption
+                // Prevent saving during fighting minigame
                 if (pausedFromScreen == SCREEN_TEKKEN_FIGHT) {
-                    // It just returns to pause menu if they try to save here
                     currentScreen = SCREEN_PAUSE; 
                 } else {
                     int slot = action - 20;
@@ -760,6 +782,7 @@ int main(void) {
             }
         }
 
+// RENDER PHASE: Draw everything to the screen
 render_phase:
         BeginTextureMode(target);
             ClearBackground(BLACK);
@@ -782,6 +805,7 @@ render_phase:
 
             if (IsStorySceneScreen(bgScreen)) {
                 if (bgScreen == SCREEN_SCENE1) DrawStoryScene(&scene1, vWidth, vHeight);
+                // ... same for all other story screens ...
                 else if (bgScreen == SCREEN_SCENE2) DrawStoryScene(&scene2, vWidth, vHeight);
                 else if (bgScreen == SCREEN_SCENE3) DrawStoryScene(&scene3, vWidth, vHeight);
                 else if (bgScreen == SCREEN_SCENE4) DrawStoryScene(&scene4, vWidth, vHeight);
@@ -808,48 +832,29 @@ render_phase:
                 else if (bgScreen == SCREEN_SCENE21_2_1) DrawStoryScene(&scene21_2_1, vWidth, vHeight);
                 else if (bgScreen == SCREEN_SCENE18_2_2) DrawStoryScene(&scene18_2_2, vWidth, vHeight);
             }
-            else if (bgScreen == SCREEN_GAMEPLAY) {
-                DrawGameplay(&gameState1, vWidth, vHeight);
-            }
-            else if (bgScreen == SCREEN_GAMEPLAY2) {
-                DrawGameplay(&gameState2, vWidth, vHeight);
-            }
+            else if (bgScreen == SCREEN_GAMEPLAY) DrawGameplay(&gameState1, vWidth, vHeight);
+            else if (bgScreen == SCREEN_GAMEPLAY2) DrawGameplay(&gameState2, vWidth, vHeight);
             
-            // --------- TEKKEN RENDER LOGIC ---------
+            // TEKKEN RENDER LOOP
             else if (bgScreen == SCREEN_TEKKEN_FIGHT) {
                 ClearBackground(BLACK);
-                
-                // Draw the Arena Background scaled to fit the 1280x720 window
                 Texture2D currentBg = (currentTekkenFight == 2) ? tekkenBg2 : tekkenBg;
-                DrawTexturePro(
-                    currentBg, 
-                    (Rectangle){ 0, 0, currentBg.width, currentBg.height }, 
-                    (Rectangle){ 0, 0, vWidth, vHeight }, 
-                    (Vector2){ 0, 0 }, 
-                    0.0f, 
-                    WHITE
-                );
+                DrawTexturePro(currentBg, (Rectangle){ 0, 0, currentBg.width, currentBg.height }, (Rectangle){ 0, 0, vWidth, vHeight }, (Vector2){ 0, 0 }, 0.0f, WHITE);
 
                 DrawCharacter(&playerTekken);
                 DrawCharacter(&enemyTekken);
                 DrawGameUI(playerTekken.health, enemyTekken.health, (int)tekkenTimer, vWidth, vHeight);
                 
-                // Draw Controls UI
+                // Controls hints
                 DrawText("A/D to Walk | L-SHIFT to Run | S to Shield | SPACE to Jump", 20, vHeight - 60, 20, RAYWHITE);
                 DrawText("Left Click = Atk 1 | Right Click = Atk 2 | E = Atk 3", 20, vHeight - 30, 20, RAYWHITE);
 
-                // Draw Pop-up Overlay
+                // Pop-up overlay for controls
                 if (showTekkenControls) {
                     DrawRectangle(0, 0, vWidth, vHeight, Fade(BLACK, 0.7f));
-                    
-                    // Main Background (Bigger and Black)
                     DrawRectangle((vWidth / 2) - 300, (vHeight / 2) - 200, 600, 400, BLACK);
-                    
-                    // Left and Right Thick Borders
-                    DrawRectangle((vWidth / 2) - 300, (vHeight / 2) - 200, 15, 400, RED); // Left border
-                    DrawRectangle((vWidth / 2) + 285, (vHeight / 2) - 200, 15, 400, RED); // Right border
-                    
-                    // Thin White Outline
+                    DrawRectangle((vWidth / 2) - 300, (vHeight / 2) - 200, 15, 400, RED); 
+                    DrawRectangle((vWidth / 2) + 285, (vHeight / 2) - 200, 15, 400, RED); 
                     DrawRectangleLines((vWidth / 2) - 300, (vHeight / 2) - 200, 600, 400, WHITE);
                     
                     DrawText("FIGHT CONTROLS", (vWidth / 2) - MeasureText("FIGHT CONTROLS", 40) / 2, (vHeight / 2) - 150, 40, RAYWHITE);
@@ -858,28 +863,25 @@ render_phase:
                     DrawText("Attacks: L-Click / R-Click / E", (vWidth / 2) - 200, (vHeight / 2) + 30, 20, LIGHTGRAY);
                     
                     Rectangle okButton = { (vWidth / 2) - 60, (vHeight / 2) + 110, 120, 50 };
-                    Color btnColor = CheckCollisionPointRec(vMouse, okButton) ? LIGHTGRAY : GRAY; // Hover effect
+                    Color btnColor = CheckCollisionPointRec(vMouse, okButton) ? LIGHTGRAY : GRAY;
                     DrawRectangleRec(okButton, btnColor);
                     DrawRectangleLinesEx(okButton, 2, WHITE);
                     DrawText("FIGHT", (int)okButton.x + 30, (int)okButton.y + 15, 20, BLACK);
                 }
 
                 if (!showTekkenControls) {
-                    if (tekkenShowResultOverlay && tekkenFinalWin) {
-                        DrawBattleWinOverlay(vWidth, vHeight);
-                    } else if (tekkenShowResultOverlay && !tekkenFinalWin) {
-                        DrawBattleDeathOverlay(vWidth, vHeight);
-                    }
+                    if (tekkenShowResultOverlay && tekkenFinalWin) DrawBattleWinOverlay(vWidth, vHeight);
+                    else if (tekkenShowResultOverlay && !tekkenFinalWin) DrawBattleDeathOverlay(vWidth, vHeight);
                 }
             }
-            // ---------------------------------------
 
             if (currentScreen == SCREEN_PAUSE) DrawPauseMenu(&menu, vWidth, vHeight);
             if (currentScreen == SCREEN_SAVE_GAME) DrawSaveMenu(&menu, vWidth, vHeight);
 
-            DrawCircleV(vMouse, 5, RED);
+            DrawCircleV(vMouse, 5, RED); // Custom cursor
         EndTextureMode();
 
+        // Put the virtual canvas on the real screen
         BeginDrawing();
             ClearBackground(BLACK);
             DrawTexturePro(
@@ -896,6 +898,7 @@ render_phase:
         EndDrawing();
     }
 
+// CLEANUP: Free all memory before closing
 cleanup:
     UnloadStoryScene(&scene1);   UnloadSceneData(&scene1_data);
     UnloadStoryScene(&scene2);   UnloadSceneData(&scene2_data);
@@ -945,7 +948,6 @@ cleanup:
     UnloadTexture(menu.saveBg);
     UnloadRenderTexture(target);
 
-    // --- TEKKEN CLEANUP ---
     for(int i = 0; i < NUM_STATES; i++) {
         UnloadTexture(playerTekken.textures[i]);
         UnloadTexture(enemyTekken.textures[i]);
@@ -953,7 +955,6 @@ cleanup:
     UnloadTexture(tekkenBg);
     UnloadTexture(tekkenBg2);
     UnloadTilemap(&tekkenMap);
-    // ----------------------
 
     UnloadMusicStream(menuMusic);
     UnloadMusicStream(storyMusic);
